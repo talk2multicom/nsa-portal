@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSA Ecosystem Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
+        .gradient-button {
+            background: linear-gradient(135deg, #0d9488, #14b8a6);
+            color: white;
+            font-weight: 700;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .gradient-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        input, select, textarea {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e0;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease-in-out;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #0d9488;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+            outline: none;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 9999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-align: center;
+        }
+        .tab-button.active {
+            background-color: #0d9488;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2), 0 2px 4px -1px rgba(13, 148, 136, 0.12);
+        }
+        .tab-button:not(.active) {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+        .tab-button:hover:not(.active) {
+            background-color: #cbd5e0;
+        }
+        .dashboard-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            transition: transform 0.2s ease-in-out;
+        }
+        .stat-box {
+            background-color: #f0fdfa;
+            border: 1px solid #99f6e4;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            transition: background-color 0.2s;
+        }
+        .list-item:hover { background-color: #f1f5f9; }
+        .list-item:last-child { border-bottom: none; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        .banner-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 0.75rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center min-h-screen p-4">
+
+    <!-- Main Container to hold all pages -->
+    <div id="app-container" class="w-full max-w-5xl mx-auto flex flex-col items-center">
+
+        <!-- Login Portal Page -->
+        <div id="login-page" class="w-full max-w-sm">
+            <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm">
+                <h1 class="text-2xl font-bold text-center text-gray-800">NSA Ecosystem</h1>
+                <p class="text-center text-sm text-gray-500 mt-2">Sign in to access your portal.</p>
+                <form id="login-form" class="mt-8 space-y-6">
+                    <div>
+                        <label for="email" class="block text-gray-700 font-medium mb-2">Email</label>
+                        <input type="email" id="email" name="email" placeholder="you@nsa.com" class="w-full" required>
+                    </div>
+                    <div>
+                        <label for="password" class="block text-gray-700 font-medium mb-2">Password</label>
+                        <input type="password" id="password" name="password" placeholder="••••••••" class="w-full" required>
+                    </div>
+                    <button type="submit" id="login-button" class="gradient-button w-full">Sign In</button>
+                </form>
+                <div class="mt-6 text-center text-sm text-gray-500">
+                    <p>Are you a customer or validator?</p>
+                    <button id="show-public-portal" class="text-teal-600 font-medium hover:underline">
+                        Access Public Portal
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard Page (initially hidden) -->
+        <div id="admin-page" class="hidden w-full max-w-5xl">
+            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl mb-4">
+                <h1 class="text-3xl font-bold text-center text-gray-800">NSA Admin Dashboard</h1>
+                <p class="text-center text-sm text-gray-500 mt-2">Real-time analytics and management.</p>
+                <div class="mt-4 text-xs text-center text-gray-400">User ID: <span id="admin-user-id">Loading...</span></div>
+                <div class="mt-2 text-center">
+                    <button id="admin-sign-out" class="text-sm text-teal-600 hover:underline">Sign Out</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl">
+                <div class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+                    <button id="admin-overview-tab" class="tab-button active">Overview</button>
+                    <button id="admin-inventory-tab" class="tab-button">Inventory</button>
+                    <button id="admin-sales-tab" class="tab-button">Sales</button>
+                    <button id="admin-incidents-tab" class="tab-button">Incidents</button>
+                    <button id="admin-traceability-tab" class="tab-button">Traceability</button>
+                    <button id="admin-training-tab" class="tab-button">Training</button>
+                    <button id="admin-regulator-tab" class="tab-button">Regulator</button>
+                </div>
+                <div id="admin-overview-panel" class="tab-content space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="stat-box">
+                            <p class="text-sm font-medium text-gray-500">Total Sales Revenue</p>
+                            <p id="total-revenue" class="mt-1 text-3xl font-bold text-emerald-600">GHS 0.00</p>
+                        </div>
+                        <div class="stat-box">
+                            <p class="text-sm font-medium text-gray-500">Incidents Reported</p>
+                            <p id="total-incidents" class="mt-1 text-3xl font-bold text-red-500">0</p>
+                        </div>
+                        <div class="stat-box">
+                            <p class="text-sm font-medium text-gray-500">Inventory Logs</p>
+                            <p id="total-inventory" class="mt-1 text-3xl font-bold text-sky-500">0</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">AI Vet Analytics (Simulated)</h2>
+                        <div class="space-y-4">
+                            <div class="flex items-center space-x-4 p-4 rounded-lg bg-red-50">
+                                <div class="text-red-500">
+                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                     </svg>
+                                </div>
+                                <div>
+                                    <p class="text-gray-900 font-medium">Mortality Trend Analysis</p>
+                                    <p id="mortality-trend" class="text-gray-600 text-sm">Loading...</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4 p-4 rounded-lg bg-teal-50">
+                                <div class="text-teal-500">
+                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10m-4-10l-8 4m8-4v10" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-gray-900 font-medium">Feed Usage Forecast</p>
+                                    <p id="feed-forecast" class="text-gray-600 text-sm">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="admin-inventory-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Inventory Logs</h2>
+                    <div id="admin-inventory-list" class="space-y-2">
+                        <p class="text-center text-gray-500">Loading inventory data...</p>
+                    </div>
+                </div>
+                <div id="admin-sales-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Sales Logs</h2>
+                    <div id="admin-sales-list" class="space-y-2">
+                        <p class="text-center text-gray-500">Loading sales data...</p>
+                    </div>
+                </div>
+                <div id="admin-incidents-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Incidents</h2>
+                    <div id="admin-incidents-list" class="space-y-2">
+                        <p class="text-center text-gray-500">Loading incident data...</p>
+                    </div>
+                </div>
+                <!-- Admin Traceability Panel -->
+                <div id="admin-traceability-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Generate Traceable Batch</h2>
+                    <form id="batch-generator-form" class="space-y-6">
+                        <div>
+                            <label for="coopId" class="block text-gray-700 font-medium mb-2">Coop ID</label>
+                            <input type="text" id="coopId" name="coopId" placeholder="e.g., Coop-A" class="w-full" required>
+                        </div>
+                        <div>
+                            <label for="birdCount" class="block text-gray-700 font-medium mb-2">Bird Count</label>
+                            <input type="number" id="birdCount" name="birdCount" placeholder="e.g., 500" class="w-full" required>
+                        </div>
+                        <div>
+                            <label for="feedType" class="block text-gray-700 font-medium mb-2">Feed Type</label>
+                            <input type="text" id="feedType" name="feedType" placeholder="e.g., Finisher Mash" class="w-full" required>
+                        </div>
+                        <div>
+                            <label for="batchNotes" class="block text-gray-700 font-medium mb-2">Batch Notes</label>
+                            <textarea id="batchNotes" name="batchNotes" rows="3" placeholder="Notes on batch..." class="w-full"></textarea>
+                        </div>
+                        <button type="submit" id="generate-batch-button" class="gradient-button w-full">Generate Traceable Batch</button>
+                    </form>
+                    <div id="generated-qr-code" class="mt-8 hidden p-6 bg-gray-50 rounded-lg shadow-inner text-center">
+                        <h3 class="font-bold text-gray-700">Generated Batch ID (for QR Code)</h3>
+                        <p id="generated-batch-id" class="text-xl font-mono text-teal-600 my-2 break-all"></p>
+                        <p class="text-sm text-gray-500">Copy this ID to generate a physical QR code for the batch.</p>
+                        <button id="copy-qr-code" class="mt-4 text-sm text-teal-600 hover:underline">Copy to Clipboard</button>
+                    </div>
+                </div>
+
+                <!-- Admin Training Panel (New) -->
+                <div id="admin-training-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Manage Training & Students</h2>
+                    <form id="training-form" class="space-y-4">
+                        <div>
+                            <label for="material-title" class="block text-gray-700 font-medium mb-2">Training Material Title</label>
+                            <input type="text" id="material-title" placeholder="e.g., Biosecurity Protocols" class="w-full" required>
+                        </div>
+                        <div>
+                            <label for="material-link" class="block text-gray-700 font-medium mb-2">Video/PDF Link</label>
+                            <input type="text" id="material-link" placeholder="https://..." class="w-full" required>
+                        </div>
+                        <button type="submit" class="gradient-button w-full">Upload Material</button>
+                    </form>
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold text-gray-700">Student Progress Tracker (Mock)</h3>
+                        <div id="student-list" class="mt-4 space-y-2">
+                             <p class="text-gray-500 text-center">No students enrolled yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Regulator Panel (New) -->
+                <div id="admin-regulator-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Regulator & Audit Access (Read-Only)</h2>
+                    <p class="text-sm text-gray-500 text-center">This panel provides a read-only view of all farm data for auditing purposes. All changes are logged and watermarked.</p>
+                    <div class="mt-8 space-y-4">
+                        <h3 class="font-semibold text-gray-700">All Incident Logs (Across Farms)</h3>
+                        <div id="regulator-incidents" class="space-y-2">
+                            <p class="text-gray-500 text-center">Loading regulator data...</p>
+                        </div>
+                        <h3 class="font-semibold text-gray-700 mt-6">All Traceability Logs</h3>
+                        <div id="regulator-traceability" class="space-y-2">
+                            <p class="text-gray-500 text-center">Loading regulator data...</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Field Staff App Page (initially hidden) -->
+        <div id="staff-page" class="hidden w-full max-w-2xl">
+            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl mb-4">
+                <h1 class="text-2xl font-bold text-center text-gray-800">Field Staff App</h1>
+                <p class="text-center text-sm text-gray-500 mt-2">Log and track data in real-time.</p>
+                <div class="mt-4 text-xs text-center text-gray-400">User ID: <span id="staff-user-id">Loading...</span></div>
+                <div class="mt-2 text-center">
+                    <button id="staff-sign-out" class="text-sm text-teal-600 hover:underline">Sign Out</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
+                <div class="flex justify-center space-x-2 mb-8">
+                    <button id="staff-inventory-tab" class="tab-button active">Inventory</button>
+                    <button id="staff-sales-tab" class="tab-button">Sales</button>
+                    <button id="staff-incidents-tab" class="tab-button">Incidents</button>
+                </div>
+                <div id="staff-inventory-panel" class="tab-content space-y-6">
+                    <h2 class="text-xl font-semibold text-gray-700 text-center">Log Inventory Delivery</h2>
+                    <form id="inventory-form" class="space-y-6">
+                        <div>
+                            <label for="coop-id" class="block text-gray-700 font-medium mb-2">Coop ID</label>
+                            <input type="text" id="coop-id" name="coop-id" placeholder="e.g., Coop-A" class="w-full" required>
+                        </div>
+                        <div>
+                            <label for="itemType" class="block text-gray-700 font-medium mb-2">Item Type</label>
+                            <select id="itemType" name="itemType" class="w-full">
+                                <option value="feed">Feed</option>
+                                <option value="medicine">Medicine</option>
+                                <option value="vaccine">Vaccine</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="itemName" class="block text-gray-700 font-medium mb-2">Item Name</label>
+                            <input type="text" id="itemName" name="itemName" placeholder="e.g., Layer Mash" class="w-full" required>
+                        </div>
+                        <div>
+                            <label for="quantity" class="block text-gray-700 font-medium mb-2">Quantity</label>
+                            <input type="number" id="quantity" name="quantity" placeholder="e.g., 50 (bags/bottles)" class="w-full" required>
+                        </div>
+                        <div>
+                            <label for="deliveryNotes" class="block text-gray-700 font-medium mb-2">Delivery Notes</label>
+                            <textarea id="deliveryNotes" name="deliveryNotes" rows="3" placeholder="Notes on delivery..." class="w-full"></textarea>
+                        </div>
+                        <button type="submit" id="log-inventory-button" class="gradient-button w-full">Log Inventory</button>
+                    </form>
+
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold text-gray-700">Recent Deliveries</h3>
+                        <div id="recent-inventory-list" class="mt-4 space-y-2">
+                            <p class="text-gray-500 text-center">No recent deliveries logged.</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="staff-sales-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Track Sales</h2>
+                    <form id="sales-form" class="space-y-6">
+                        <div>
+                            <label for="saleItem" class="block text-gray-700 font-medium mb-2">Item Sold</label>
+                            <select id="saleItem" name="saleItem" class="w-full">
+                                <option value="birds">Birds</option>
+                                <option value="eggs">Eggs</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="saleQuantity" class="block text-gray-700 font-medium mb-2">Quantity Sold</label>
+                            <input type="number" id="saleQuantity" name="saleQuantity" placeholder="e.g., 10 (birds) or 100 (eggs)" class="w-full">
+                        </div>
+                        <div>
+                            <label for="salePrice" class="block text-gray-700 font-medium mb-2">Total Revenue (GHS)</label>
+                            <input type="number" id="salePrice" name="salePrice" placeholder="e.g., 500" step="0.01" class="w-full">
+                        </div>
+                        <div>
+                            <label for="saleNotes" class="block text-gray-700 font-medium mb-2">Sale Notes</label>
+                            <textarea id="saleNotes" name="saleNotes" rows="3" placeholder="Buyer details, payment method, etc." class="w-full"></textarea>
+                        </div>
+                        <button type="submit" id="log-sales-button" class="gradient-button w-full">Log Sales</button>
+                    </form>
+                </div>
+                <div id="staff-incidents-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Report Incident</h2>
+                    <form id="incidents-form" class="space-y-6">
+                        <div>
+                            <label for="incidentType" class="block text-gray-700 font-medium mb-2">Incident Type</label>
+                            <select id="incidentType" name="incidentType" class="w-full">
+                                <option value="mortality">Mortality</option>
+                                <option value="disease">Disease Outbreak</option>
+                                <option value="supply">Supply Shortage</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="incidentTitle" class="block text-gray-700 font-medium mb-2">Incident Title</label>
+                            <input type="text" id="incidentTitle" name="incidentTitle" placeholder="e.g., High Mortality in Coop B" class="w-full">
+                        </div>
+                        <div>
+                            <label for="incidentNotes" class="block text-gray-700 font-medium mb-2">Description</label>
+                            <textarea id="incidentNotes" name="incidentNotes" rows="5" placeholder="Provide details, affected coop, number of birds, etc." class="w-full"></textarea>
+                        </div>
+                        <button type="submit" id="report-incident-button" class="gradient-button w-full">Report Incident</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Marketplace & Validator Page (initially hidden) -->
+        <div id="public-page" class="hidden w-full max-w-4xl">
+            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl mb-4">
+                <h1 class="text-3xl font-bold text-center text-gray-800">NSA Customer Portal</h1>
+                <p class="text-center text-sm text-gray-500 mt-2">Browse our products and track your orders.</p>
+                <div class="mt-4 text-xs text-center text-gray-400">User ID: <span id="customer-user-id">Loading...</span></div>
+                <div class="mt-2 text-center">
+                    <button id="show-login-portal" class="text-sm text-teal-600 hover:underline">Internal Sign-in</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl">
+                <div class="flex justify-center space-x-2 md:space-x-4 mb-8">
+                    <button id="marketplace-tab" class="tab-button active">Marketplace</button>
+                    <button id="order-tracking-tab" class="tab-button">Track Order</button>
+                    <button id="traceability-tab" class="tab-button">Traceability</button>
+                </div>
+                <div id="marketplace-panel" class="tab-content space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        <!-- New Banners -->
+                        <div class="p-4 rounded-lg bg-white flex flex-col items-center text-center">
+                            <img src="https://images.unsplash.com/photo-1579621970795-87facc2f976d?q=80&w=2000&auto=format&fit=crop" alt="Smart Agro banner" class="banner-image mb-2">
+                            <p class="font-bold text-gray-800">Smart Agro</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-white flex flex-col items-center text-center">
+                            <img src="https://images.unsplash.com/photo-1617208491873-a657c6b24d73?q=80&w=2000&auto=format&fit=crop" alt="Poultry banner" class="banner-image mb-2">
+                            <p class="font-bold text-gray-800">Poultry</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-white flex flex-col items-center text-center">
+                            <img src="https://images.unsplash.com/photo-1549646467-f273b53f33de?q=80&w=2000&auto=format&fit=fit=crop" alt="Cold Chain banner" class="banner-image mb-2">
+                            <p class="font-bold text-gray-800">Cold Chain</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-white flex flex-col items-center text-center">
+                            <img src="https://images.unsplash.com/photo-1582234375003-88390885e347?q=80&w=2000&auto=format&fit=fit=crop" alt="Post-Harvest banner" class="banner-image mb-2">
+                            <p class="font-bold text-gray-800">Post-Harvest</p>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-semibold text-gray-700 text-center">Available Products</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card p-6 bg-white rounded-xl shadow-lg">
+                            <img class="product-image w-full rounded-lg mb-4" src="https://placehold.co/400x300/e2e8f0/4a5568?text=Birds+for+Sale" alt="A group of chickens">
+                            <h3 class="text-xl font-bold text-gray-800">Live Birds</h3>
+                            <p class="text-gray-500 mt-1">Healthy, organically raised birds.</p>
+                            <button id="buy-birds" class="gradient-button mt-4 w-full">Order Now</button>
+                        </div>
+                        <div class="card p-6 bg-white rounded-xl shadow-lg">
+                            <img class="product-image w-full rounded-lg mb-4" src="https://placehold.co/400x300/e2e8f0/4a5568?text=Fresh+Eggs" alt="A carton of fresh eggs">
+                            <h3 class="text-xl font-bold text-gray-800">Fresh Eggs</h3>
+                            <p class="text-gray-500 mt-1">Farm-fresh, large brown eggs.</p>
+                            <button id="buy-eggs" class="gradient-button mt-4 w-full">Order Now</button>
+                        </div>
+                    </div>
+                    <div id="order-form-container" class="mt-8 hidden">
+                        <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Place Your Order</h2>
+                        <form id="order-form" class="space-y-6">
+                            <div>
+                                <label for="customerName" class="block text-gray-700 font-medium mb-2">Your Name</label>
+                                <input type="text" id="customerName" name="customerName" placeholder="John Doe" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="customerEmail" class="block text-gray-700 font-medium mb-2">Email</label>
+                                <input type="email" id="customerEmail" name="customerEmail" placeholder="you@example.com" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="product" class="block text-gray-700 font-medium mb-2">Product</label>
+                                <input type="text" id="product" name="product" class="w-full bg-gray-200 cursor-not-allowed" readonly required>
+                            </div>
+                            <div>
+                                <label for="quantity" class="block text-gray-700 font-medium mb-2">Quantity</label>
+                                <input type="number" id="quantity" name="quantity" placeholder="e.g., 100" class="w-full" required>
+                            </div>
+                            <button type="submit" id="submit-order-button" class="gradient-button w-full">Submit Order Request</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="order-tracking-panel" class="tab-content hidden">
+                    <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Track Your Order</h2>
+                    <div class="space-y-4">
+                        <p class="text-center text-gray-500">Enter your order ID below.</p>
+                        <div>
+                            <label for="order-id-input" class="block text-gray-700 font-medium mb-2">Order ID</label>
+                            <input type="text" id="order-id-input" placeholder="e.g., ORD-A1B2C3D4" class="w-full">
+                        </div>
+                        <button id="track-order-button" class="gradient-button w-full">Track Order</button>
+                    </div>
+                    <div id="tracking-result" class="mt-8 p-6 bg-gray-50 rounded-lg shadow-inner hidden">
+                        <h3 class="text-xl font-semibold text-center mb-4 text-emerald-600">Order Details</h3>
+                        <div class="space-y-4 text-gray-700">
+                            <div class="flex justify-between">
+                                <span class="font-medium">Order ID:</span>
+                                <span id="result-order-id"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Product:</span>
+                                <span id="result-product"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Quantity:</span>
+                                <span id="result-quantity"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Status:</span>
+                                <span id="result-status" class="font-bold text-blue-500"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="tracking-error" class="mt-8 p-6 bg-red-50 text-red-700 border border-red-200 rounded-lg hidden">
+                        <p class="text-center font-medium">Order not found. Please check the ID and try again.</p>
+                    </div>
+                </div>
+                <!-- Public Traceability Panel (new) -->
+                <div id="traceability-panel" class="tab-content hidden">
+                    <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Validate Product Traceability</h2>
+                    <div class="space-y-4">
+                        <p class="text-center text-gray-500">Enter a product Batch ID to view its history.</p>
+                        <div>
+                            <label for="batch-id-input" class="block text-gray-700 font-medium mb-2">Batch ID</label>
+                            <input type="text" id="batch-id-input" placeholder="e.g., BATCH-12345" class="w-full">
+                        </div>
+                        <button id="validate-batch-button" class="gradient-button w-full">Validate Batch</button>
+                    </div>
+                    <div id="validation-result" class="mt-8 p-6 bg-gray-50 rounded-lg shadow-inner hidden">
+                        <h3 class="text-xl font-semibold text-center mb-4 text-emerald-600">Batch Details</h3>
+                        <div class="space-y-4 text-gray-700">
+                            <div class="flex justify-between">
+                                <span class="font-medium">Batch ID:</span>
+                                <span id="result-batch-id"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Coop ID:</span>
+                                <span id="result-coop-id"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Bird Count:</span>
+                                <span id="result-bird-count"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Feed Type:</span>
+                                <span id="result-feed-type"></span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="font-medium">Blockchain Hash:</span>
+                                <span id="result-blockchain-hash" class="text-xs font-mono text-gray-600 break-all text-right"></span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="font-medium">Notes:</span>
+                                <span id="result-batch-notes" class="text-xs text-gray-600 text-right"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="validation-error" class="mt-8 p-6 bg-red-50 text-red-700 border border-red-200 rounded-lg hidden">
+                        <p class="text-center font-medium">Batch not found. Please check the ID and try again.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="mt-8 text-center text-gray-500 text-sm">
+        <p>powered by MulticomIOT</p>
+    </footer>
+
+    <!-- Modal for custom alerts -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
+            <p id="modal-message" class="text-gray-700 mb-4"></p>
+            <button id="modal-close" class="gradient-button w-full">OK</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, addDoc, collection, doc, getDoc, onSnapshot, query, setLogLevel, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        setLogLevel('debug');
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            console.log('Firebase initialized successfully.');
+        } catch (e) {
+            console.error('Firebase initialization failed:', e);
+            showModal('Initialization Error', 'Failed to initialize Firebase. Check your configuration.');
+        }
+
+        // --- Language & UI State ---
+        const translations = {
+            'en': {
+                login_title: 'NSA Ecosystem',
+                login_subtitle: 'Sign in to access your portal.',
+                login_email: 'Email',
+                login_password: 'Password',
+                login_button: 'Sign In',
+                login_public_prompt: 'Are you a customer or validator?',
+                login_public_button: 'Access Public Portal',
+                admin_title: 'NSA Admin Dashboard',
+                admin_subtitle: 'Real-time analytics and management.',
+                admin_user_id: 'User ID',
+                admin_sign_out: 'Sign Out',
+                admin_overview: 'Overview',
+                admin_inventory: 'Inventory',
+                admin_sales: 'Sales',
+                admin_incidents: 'Incidents',
+                admin_traceability: 'Traceability',
+                admin_training: 'Training',
+                admin_regulator: 'Regulator',
+                staff_title: 'Field Staff App',
+                staff_subtitle: 'Log and track data in real-time.',
+                staff_user_id: 'User ID',
+                staff_sign_out: 'Sign Out',
+                staff_inventory: 'Inventory',
+                staff_sales: 'Sales',
+                staff_incidents: 'Incidents',
+                inventory_header: 'Log Inventory Delivery',
+                inventory_coop: 'Coop ID',
+                inventory_item_type: 'Item Type',
+                inventory_item_name: 'Item Name',
+                inventory_quantity: 'Quantity',
+                inventory_notes: 'Delivery Notes',
+                inventory_log_button: 'Log Inventory',
+                sales_header: 'Track Sales',
+                sales_item: 'Item Sold',
+                sales_quantity: 'Quantity Sold',
+                sales_revenue: 'Total Revenue (GHS)',
+                sales_notes: 'Sale Notes',
+                sales_log_button: 'Log Sales',
+                incidents_header: 'Report Incident',
+                incidents_type: 'Incident Type',
+                incidents_title: 'Incident Title',
+                incidents_description: 'Description',
+                incidents_report_button: 'Report Incident',
+                public_title: 'NSA Customer Portal',
+                public_subtitle: 'Browse our products and track your orders.',
+                public_user_id: 'User ID',
+                public_sign_in: 'Internal Sign-in',
+                public_marketplace: 'Marketplace',
+                public_track_order: 'Track Order',
+                public_traceability: 'Traceability',
+                marketplace_products: 'Available Products',
+                marketplace_birds: 'Live Birds',
+                marketplace_eggs: 'Fresh Eggs',
+                order_form_header: 'Place Your Order',
+                order_name: 'Your Name',
+                order_email: 'Email',
+                order_product: 'Product',
+                order_quantity: 'Quantity',
+                order_submit: 'Submit Order Request',
+                order_tracking_header: 'Track Your Order',
+                order_tracking_prompt: 'Enter your order ID below.',
+                order_tracking_id: 'Order ID',
+                order_tracking_button: 'Track Order',
+                traceability_header: 'Validate Product Traceability',
+                traceability_prompt: 'Enter a product Batch ID to view its history.',
+                traceability_id: 'Batch ID',
+                traceability_button: 'Validate Batch',
+                modal_ok: 'OK'
+            },
+            'tw': { // Twi (Fante)
+                login_title: 'NSA Ecosystem',
+                login_subtitle: 'Fa wo nsɛmfua hyɛ mu kɔ w\'adwuma mu.',
+                login_email: 'Email',
+                login_password: 'Password',
+                login_button: 'Fa wo nkyerɛwee gu mu',
+                login_public_prompt: 'Woyɛ ɔkyini anaa ahwehwɛfoɔ?',
+                login_public_button: 'Kɔ baabi a obiara bɛtumi akɔ',
+                admin_title: 'NSA Adwumayɛfoɔ Dashboard',
+                admin_subtitle: 'Mprɛprɛnsoɔ mu nkyerɛkyerɛmu ne adwuma.',
+                admin_user_id: 'Onipa Nkyerɛwee',
+                admin_sign_out: 'Fi adi',
+                admin_overview: 'Nsɛm Pɔtee',
+                admin_inventory: 'Nnoɔma',
+                admin_sales: 'Tɔn',
+                admin_incidents: 'Akwanhyia',
+                admin_traceability: 'Mmuada',
+                admin_training: 'Nkyerɛkyerɛ',
+                admin_regulator: 'Nnwumayɛfoɔ',
+                staff_title: 'Adwumayɛfoɔ App',
+                staff_subtitle: 'Fa nsɛm hyɛ mu prɛko pɛ.',
+                staff_user_id: 'Onipa Nkyerɛwee',
+                staff_sign_out: 'Fi adi',
+                staff_inventory: 'Nnoɔma',
+                staff_sales: 'Tɔn',
+                staff_incidents: 'Akwanhyia',
+                inventory_header: 'Fa Nnoɔma Baabi A Wɔde Kɔ',
+                inventory_coop: 'Coop Nkyerɛwee',
+                inventory_item_type: 'Nnoɔma su',
+                inventory_item_name: 'Nnoɔma din',
+                inventory_quantity: 'Ne dodoɔ',
+                inventory_notes: 'Nsɛm a ɛfa nnoɔma a wɔde ma ho',
+                inventory_log_button: 'Fa Nnoɔma hyɛ mu',
+                sales_header: 'Tɔn Nneɛma',
+                sales_item: 'Nneɛma a wɔatɔn',
+                sales_quantity: 'Nneɛma dodoɔ',
+                sales_revenue: 'Sika a ɛbae (GHS)',
+                sales_notes: 'Nnoɔma a wɔatɔn ho nsɛm',
+                sales_log_button: 'Fa Tɔn hyɛ mu',
+                incidents_header: 'Bɔ Akwanhyia ho amanneɛ',
+                incidents_type: 'Akwanhyia su',
+                incidents_title: 'Akwanhyia Nkyerɛwee',
+                incidents_description: 'Nkyerɛkyerɛmu',
+                incidents_report_button: 'Bɔ amanneɛ',
+                public_title: 'NSA Ahwehwɛfoɔ Portal',
+                public_subtitle: 'Hwehwɛ yɛn nneɛma ne wo nnoɔma a wɔahyehyɛ.',
+                public_user_id: 'Onipa Nkyerɛwee',
+                public_sign_in: 'Kɔ Adwuma mu',
+                public_marketplace: 'Tɔnbea',
+                public_track_order: 'Hwehwɛ wo Tɔn',
+                public_traceability: 'Mmuada',
+                marketplace_products: 'Nneɛma a ɛwɔ hɔ',
+                marketplace_birds: 'Nkɔtɔn',
+                marketplace_eggs: 'Nkoko-kesua',
+                order_form_header: 'Fa wo nnoɔma hyɛ hɔ',
+                order_name: 'Wo din',
+                order_email: 'Email',
+                order_product: 'Nnoɔma',
+                order_quantity: 'Dodoɔ',
+                order_submit: 'Fa Tɔn hyɛ mu',
+                order_tracking_header: 'Hwehwɛ wo Tɔn',
+                order_tracking_prompt: 'Fa wo Tɔn Nkyerɛwee hyɛ mu.',
+                order_tracking_id: 'Tɔn Nkyerɛwee',
+                order_tracking_button: 'Hwehwɛ Tɔn',
+                traceability_header: 'Hwehwɛ Mmuada',
+                traceability_prompt: 'Fa nnoɔma Batch ID hyɛ mu.',
+                traceability_id: 'Batch ID',
+                traceability_button: 'Hwehwɛ Batch',
+                modal_ok: 'Yoo'
+            },
+            'ee': { // Ewe
+                login_title: 'NSA Ecosystem',
+                login_subtitle: 'Gbɔ kpo wò Portal.',
+                login_email: 'Email',
+                login_password: 'Password',
+                login_button: 'Gbɔ kpo',
+                login_public_prompt: 'Ðe yeye nu kple amegbetɔ alo wofɔna?',
+                login_public_button: 'Wɔtɔ ŋutsu kple amegbetɔ',
+                admin_title: 'NSA Adzɔdzi Dashboard',
+                admin_subtitle: 'Mɔɖaŋu kple nunɔamesi gbɔŋu.',
+                admin_user_id: 'Amegbetɔ ID',
+                admin_sign_out: 'Dzi',
+                admin_overview: 'Nunɔamesi',
+                admin_inventory: 'Nudɔwo',
+                admin_sales: 'Dzadzra',
+                admin_incidents: 'Nukunu',
+                admin_traceability: 'Mɔzɔ',
+                admin_training: 'Hehe',
+                admin_regulator: 'Ɖɔɖɔɖa',
+                staff_title: 'Dɔwɔla ƒe App',
+                staff_subtitle: 'Dzra nuwo gbɔŋu.',
+                staff_user_id: 'Amegbetɔ ID',
+                staff_sign_out: 'Dzi',
+                staff_inventory: 'Nudɔwo',
+                staff_sales: 'Dzadzra',
+                staff_incidents: 'Nukunu',
+                inventory_header: 'Dzra Nuwo ɖi',
+                inventory_coop: 'Coop ID',
+                inventory_item_type: 'Nudɔ wɔɖa',
+                inventory_item_name: 'Nudɔ ŋkɔ',
+                inventory_quantity: 'Hlɔŋ',
+                inventory_notes: 'Nuwo ƒe nya',
+                inventory_log_button: 'Dzra Nudɔwo ɖi',
+                sales_header: 'Dzra Nuwo ɖi',
+                sales_item: 'Nudɔ aɖe',
+                sales_quantity: 'Hlɔŋ',
+                sales_revenue: 'Nuwo ƒe sika (GHS)',
+                sales_notes: 'Nuwo ƒe dzadzra nyawo',
+                sales_log_button: 'Dzra Nuwo ɖi',
+                incidents_header: 'Nuɖeɖa',
+                incidents_type: 'Nuɖeɖa wɔɖa',
+                incidents_title: 'Nuɖeɖa ŋkɔ',
+                incidents_description: 'Nukunu ƒe nyawo',
+                incidents_report_button: 'Nuɖeɖa',
+                public_title: 'NSA Dzadzra Portal',
+                public_subtitle: 'Hlɔ nuwo kple wò dzadzra.',
+                public_user_id: 'Amegbetɔ ID',
+                public_sign_in: 'Gbɔ Kpo Dɔwɔla',
+                public_marketplace: 'Dzadzra',
+                public_track_order: 'Dɔdzra',
+                public_traceability: 'Mɔzɔ',
+                marketplace_products: 'Nuwo',
+                marketplace_birds: 'Xeviwo',
+                marketplace_eggs: 'Dzidzɔwo',
+                order_form_header: 'Dɔdzra',
+                order_name: 'Wò ŋkɔ',
+                order_email: 'Email',
+                order_product: 'Nuwo',
+                order_quantity: 'Hlɔŋ',
+                order_submit: 'Dɔdzra',
+                order_tracking_header: 'Dɔdzra',
+                order_tracking_prompt: 'Dɔdzra ID',
+                order_tracking_id: 'Dɔdzra ID',
+                order_tracking_button: 'Dɔdzra',
+                traceability_header: 'Mɔzɔ',
+                traceability_prompt: 'Batch ID',
+                traceability_id: 'Batch ID',
+                traceability_button: 'Mɔzɔ',
+                modal_ok: 'Mɔzɔ'
+            },
+            'ha': { // Hausa
+                login_title: 'NSA Ecosystem',
+                login_subtitle: 'Shiga shafin ka.',
+                login_email: 'Email',
+                login_password: 'Password',
+                login_button: 'Shiga',
+                login_public_prompt: 'Shin kai abokin ciniki ne ko mai bincike?',
+                login_public_button: 'Shiga Shafin Jama\'a',
+                admin_title: 'NSA Admin Dashboard',
+                admin_subtitle: 'Bincike da kulawa a ainihin lokaci.',
+                admin_user_id: 'Lambar Mai Amfani',
+                admin_sign_out: 'Fita',
+                admin_overview: 'Bincike',
+                admin_inventory: 'Abubuwa',
+                admin_sales: 'Sayarwa',
+                admin_incidents: 'Hatsarori',
+                admin_traceability: 'Bibiya',
+                admin_training: 'Horaswa',
+                admin_regulator: 'Mai Gudanarwa',
+                staff_title: 'Shafin Ma\'aikata',
+                staff_subtitle: 'Yi rikodin bayanai a ainihin lokaci.',
+                staff_user_id: 'Lambar Mai Amfani',
+                staff_sign_out: 'Fita',
+                staff_inventory: 'Abubuwa',
+                staff_sales: 'Sayarwa',
+                staff_incidents: 'Hatsarori',
+                inventory_header: 'Yi Rikodin Isarwa',
+                inventory_coop: 'Coop ID',
+                inventory_item_type: 'Nau\'in abu',
+                inventory_item_name: 'Sunan abu',
+                inventory_quantity: 'Adadin',
+                inventory_notes: 'Bayanan isarwa',
+                inventory_log_button: 'Yi Rikodin',
+                sales_header: 'Kula da Sayarwa',
+                sales_item: 'Abu da aka sayar',
+                sales_quantity: 'Adadin da aka sayar',
+                sales_revenue: 'Jimillar kudin shiga (GHS)',
+                sales_notes: 'Bayanan sayarwa',
+                sales_log_button: 'Yi Rikodi',
+                incidents_header: 'Bayar da Rahoton Hatsari',
+                incidents_type: 'Nau\'in Hatsari',
+                incidents_title: 'Take',
+                incidents_description: 'Bayanin hatsari',
+                incidents_report_button: 'Bayar da Rahoto',
+                public_title: 'NSA Shafin Jama\'a',
+                public_subtitle: 'Bincika kayayyakin mu da kuma odar ku.',
+                public_user_id: 'Lambar Mai Amfani',
+                public_sign_in: 'Shiga Ciki',
+                public_marketplace: 'Kasuwanci',
+                public_track_order: 'Kula da Oda',
+                public_traceability: 'Bibiya',
+                marketplace_products: 'Kayayyakin da Akwai',
+                marketplace_birds: 'Dabbobi Masu Raye',
+                marketplace_eggs: 'Kwai masu sabo',
+                order_form_header: 'Sanya Oda',
+                order_name: 'Sunan ka',
+                order_email: 'Email',
+                order_product: 'Kaya',
+                order_quantity: 'Adadin',
+                order_submit: 'Aika Odar',
+                order_tracking_header: 'Kula da Oda',
+                order_tracking_prompt: 'Sanya lambar odar ku.',
+                order_tracking_id: 'Lambar Oda',
+                order_tracking_button: 'Kula da Oda',
+                traceability_header: 'Bibiya',
+                traceability_prompt: 'Sanya Batch ID.',
+                traceability_id: 'Batch ID',
+                traceability_button: 'Bincika',
+                modal_ok: 'Ok'
+            }
+        };
+
+        let currentLang = 'en';
+
+        function updateUI() {
+            const elements = document.querySelectorAll('[data-lang-key]');
+            elements.forEach(el => {
+                const key = el.getAttribute('data-lang-key');
+                if (translations[currentLang][key]) {
+                    el.textContent = translations[currentLang][key];
+                }
+            });
+            // Update placeholders and titles
+            document.getElementById('email').placeholder = translations[currentLang].login_email;
+            document.getElementById('password').placeholder = translations[currentLang].login_password;
+            document.title = translations[currentLang].public_title;
+        }
+
+        // --- Page Navigation Logic ---
+        const loginPage = document.getElementById('login-page');
+        const adminPage = document.getElementById('admin-page');
+        const staffPage = document.getElementById('staff-page');
+        const publicPage = document.getElementById('public-page');
+
+        function showPage(pageName) {
+            loginPage.classList.add('hidden');
+            adminPage.classList.add('hidden');
+            staffPage.classList.add('hidden');
+            publicPage.classList.add('hidden');
+            
+            if (pageName === 'login') {
+                loginPage.classList.remove('hidden');
+            } else if (pageName === 'admin') {
+                adminPage.classList.remove('hidden');
+            } else if (pageName === 'staff') {
+                staffPage.classList.remove('hidden');
+            } else if (pageName === 'public') {
+                publicPage.classList.remove('hidden');
+            }
+            updateUI();
+        }
+        
+        document.getElementById('show-public-portal').onclick = () => {
+            signInAnonymously(auth).then(() => {
+                showPage('public');
+            }).catch(error => {
+                console.error('Anonymous sign-in failed:', error);
+                showModal('Authentication Failed', 'Could not sign in to the public portal.');
+            });
+        };
+        document.getElementById('show-login-portal').onclick = () => {
+            signOut(auth).then(() => {
+                showPage('login');
+            }).catch((error) => {
+                console.error("Sign out failed: ", error);
+                showPage('login'); // Fallback to login page
+            });
+        };
+        
+        // --- Authentication & Redirection ---
+        const loginForm = document.getElementById('login-form');
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Login failed:", error);
+                showModal('Login Failed', 'Invalid email or password. Please try again.');
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (user.isAnonymous) {
+                     showPage('public');
+                     const customerUserIdSpan = document.getElementById('customer-user-id');
+                     if(customerUserIdSpan) {
+                       customerUserIdSpan.textContent = user.uid;
+                     }
+                     return;
+                }
+                const userEmail = user.email;
+                if (userEmail === 'admin@nsa.com') {
+                    const adminUserIdSpan = document.getElementById('admin-user-id');
+                    if (adminUserIdSpan) {
+                      adminUserIdSpan.textContent = user.uid;
+                    }
+                    showPage('admin');
+                } else if (userEmail === 'staff@nsa.com') {
+                    const staffUserIdSpan = document.getElementById('staff-user-id');
+                    if (staffUserIdSpan) {
+                      staffUserIdSpan.textContent = user.uid;
+                    }
+                    showPage('staff');
+                } else {
+                    signOut(auth);
+                    showModal('Access Denied', 'Your account does not have access to an internal portal.');
+                    showPage('login');
+                }
+            } else {
+                 showPage('login');
+            }
+        });
+        
+        // --- Admin Dashboard Logic ---
+        const adminOverviewTab = document.getElementById('admin-overview-tab');
+        const adminInventoryTab = document.getElementById('admin-inventory-tab');
+        const adminSalesTab = document.getElementById('admin-sales-tab');
+        const adminIncidentsTab = document.getElementById('admin-incidents-tab');
+        const adminTraceabilityTab = document.getElementById('admin-traceability-tab');
+        const adminTrainingTab = document.getElementById('admin-training-tab');
+        const adminRegulatorTab = document.getElementById('admin-regulator-tab');
+        const adminOverviewPanel = document.getElementById('admin-overview-panel');
+        const adminInventoryPanel = document.getElementById('admin-inventory-panel');
+        const adminSalesPanel = document.getElementById('admin-sales-panel');
+        const adminIncidentsPanel = document.getElementById('admin-incidents-panel');
+        const adminTraceabilityPanel = document.getElementById('admin-traceability-panel');
+        const adminTrainingPanel = document.getElementById('admin-training-panel');
+        const adminRegulatorPanel = document.getElementById('admin-regulator-panel');
+        
+        function switchAdminTab(tab) {
+            adminOverviewTab.classList.remove('active');
+            adminInventoryTab.classList.remove('active');
+            adminSalesTab.classList.remove('active');
+            adminIncidentsTab.classList.remove('active');
+            adminTraceabilityTab.classList.remove('active');
+            adminTrainingTab.classList.remove('active');
+            adminRegulatorTab.classList.remove('active');
+            adminOverviewPanel.classList.add('hidden');
+            adminInventoryPanel.classList.add('hidden');
+            adminSalesPanel.classList.add('hidden');
+            adminIncidentsPanel.classList.add('hidden');
+            adminTraceabilityPanel.classList.add('hidden');
+            adminTrainingPanel.classList.add('hidden');
+            adminRegulatorPanel.classList.add('hidden');
+            
+            if (tab === 'overview') {
+                adminOverviewTab.classList.add('active');
+                adminOverviewPanel.classList.remove('hidden');
+            } else if (tab === 'inventory') {
+                adminInventoryTab.classList.add('active');
+                adminInventoryPanel.classList.remove('hidden');
+            } else if (tab === 'sales') {
+                adminSalesTab.classList.add('active');
+                adminSalesPanel.classList.remove('hidden');
+            } else if (tab === 'incidents') {
+                adminIncidentsTab.classList.add('active');
+                adminIncidentsPanel.classList.remove('hidden');
+            } else if (tab === 'traceability') {
+                adminTraceabilityTab.classList.add('active');
+                adminTraceabilityPanel.classList.remove('hidden');
+            } else if (tab === 'training') {
+                adminTrainingTab.classList.add('active');
+                adminTrainingPanel.classList.remove('hidden');
+            } else if (tab === 'regulator') {
+                adminRegulatorTab.classList.add('active');
+                adminRegulatorPanel.classList.remove('hidden');
+            }
+        }
+        adminOverviewTab.onclick = () => switchAdminTab('overview');
+        adminInventoryTab.onclick = () => switchAdminTab('inventory');
+        adminSalesTab.onclick = () => switchAdminTab('sales');
+        adminIncidentsTab.onclick = () => switchAdminTab('incidents');
+        adminTraceabilityTab.onclick = () => switchAdminTab('traceability');
+        adminTrainingTab.onclick = () => switchAdminTab('training');
+        adminRegulatorTab.onclick = () => switchAdminTab('regulator');
+        
+        // Admin render functions
+        const renderAdminInventory = (item) => `
+            <div class="list-item">
+                <span class="text-sm font-medium text-gray-700">${item.itemName} (${item.itemType})</span>
+                <span class="text-gray-500 text-sm">${item.quantity} units</span>
+            </div>
+        `;
+        const renderAdminSale = (item) => `
+            <div class="list-item">
+                <span class="text-sm font-medium text-gray-700">${item.saleItem}</span>
+                <span class="text-emerald-600 font-bold text-sm">GHS ${item.salePrice.toFixed(2)}</span>
+            </div>
+        `;
+        const renderAdminIncident = (item) => {
+            const statusColor = item.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+            return `
+            <div class="list-item flex-col items-start space-y-1">
+                <div class="flex justify-between w-full">
+                    <span class="text-sm font-medium text-gray-700">${item.incidentTitle}</span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${item.status || 'Pending'}</span>
+                </div>
+                <p class="text-gray-500 text-xs">${item.incidentNotes}</p>
+            </div>
+            `;
+        };
+
+        function updateAdminAnalytics(incidents, sales, inventory) {
+            const mortalityCount = incidents.filter(i => i.incidentType === 'mortality').length;
+            const mortalityTrend = mortalityCount > 5 ? 'High mortality detected. Immediate action required.' : 'Mortality is within normal range.';
+            const totalFeedQuantity = inventory.filter(i => i.itemType === 'feed').reduce((sum, item) => sum + item.quantity, 0);
+            const feedForecast = `Total feed logged: ${totalFeedQuantity} units. Forecast pending.`
+            document.getElementById('total-revenue').textContent = `GHS ${sales.reduce((sum, sale) => sum + sale.salePrice, 0).toFixed(2)}`;
+            document.getElementById('total-incidents').textContent = incidents.length;
+            document.getElementById('total-inventory').textContent = inventory.length;
+            document.getElementById('mortality-trend').textContent = mortalityTrend;
+            document.getElementById('feed-forecast').textContent = feedForecast;
+        }
+
+        // --- Staff App Logic ---
+        const staffInventoryTab = document.getElementById('staff-inventory-tab');
+        const staffSalesTab = document.getElementById('staff-sales-tab');
+        const staffIncidentsTab = document.getElementById('staff-incidents-tab');
+        const staffInventoryPanel = document.getElementById('staff-inventory-panel');
+        const staffSalesPanel = document.getElementById('staff-sales-panel');
+        const staffIncidentsPanel = document.getElementById('staff-incidents-panel');
+        const inventoryForm = document.getElementById('inventory-form');
+        const salesForm = document.getElementById('sales-form');
+        const incidentsForm = document.getElementById('incidents-form');
+        const recentInventoryList = document.getElementById('recent-inventory-list');
+        
+        function switchStaffTab(tab) {
+            staffInventoryTab.classList.remove('active');
+            staffSalesTab.classList.remove('active');
+            staffIncidentsTab.classList.remove('active');
+            staffInventoryPanel.classList.add('hidden');
+            staffSalesPanel.classList.add('hidden');
+            staffIncidentsPanel.classList.add('hidden');
+            if (tab === 'inventory') {
+                staffInventoryTab.classList.add('active');
+                staffInventoryPanel.classList.remove('hidden');
+            } else if (tab === 'sales') {
+                staffSalesTab.classList.add('active');
+                staffSalesPanel.classList.remove('hidden');
+            } else if (tab === 'incidents') {
+                staffIncidentsTab.classList.add('active');
+                staffIncidentsPanel.classList.remove('hidden');
+            }
+        }
+        staffInventoryTab.onclick = () => switchStaffTab('inventory');
+        staffSalesTab.onclick = () => switchStaffTab('sales');
+        staffIncidentsTab.onclick = () => switchStaffTab('incidents');
+        
+        onAuthStateChanged(auth, user => {
+            if (user && !user.isAnonymous) {
+                // Listen for changes to the user's private inventory logs
+                const inventoryRef = collection(db, `artifacts/${appId}/users/${user.uid}/inventory`);
+                onSnapshot(query(inventoryRef), (snapshot) => {
+                    const logs = [];
+                    snapshot.forEach(doc => {
+                        logs.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderRecentInventory(logs);
+                });
+            }
+        });
+        
+        function renderRecentInventory(logs) {
+            if (logs.length === 0) {
+                recentInventoryList.innerHTML = '<p class="text-gray-500 text-center">No recent deliveries logged.</p>';
+            } else {
+                recentInventoryList.innerHTML = logs.map(log => `
+                    <div class="bg-gray-50 rounded-lg p-3 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <p class="font-medium text-gray-800">${log.itemName} (${log.itemType})</p>
+                            <p class="text-sm text-gray-500">Coop ID: ${log.coopId}</p>
+                        </div>
+                        <p class="text-sm text-teal-600 font-semibold mt-2 sm:mt-0">${log.quantity} units</p>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        inventoryForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                coopId: document.getElementById('coop-id').value,
+                itemType: document.getElementById('itemType').value,
+                itemName: document.getElementById('itemName').value,
+                quantity: parseInt(document.getElementById('quantity').value, 10),
+                deliveryNotes: document.getElementById('deliveryNotes').value,
+                timestamp: serverTimestamp(),
+                userId: auth.currentUser.uid
+            };
+            if (!data.coopId || !data.itemName || !data.quantity) {
+                showModal('Input Required', 'Please fill in all required fields.');
+                return;
+            }
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/inventory`), data);
+                showModal('Success!', 'Inventory logged successfully.');
+                inventoryForm.reset();
+            } catch (error) {
+                console.error("Error logging inventory: ", error);
+                showModal('Error', 'Failed to log inventory. Please check the console.');
+            }
+        };
+
+        salesForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                saleItem: document.getElementById('saleItem').value,
+                saleQuantity: parseInt(document.getElementById('saleQuantity').value, 10),
+                salePrice: parseFloat(document.getElementById('salePrice').value),
+                saleNotes: document.getElementById('saleNotes').value,
+                timestamp: serverTimestamp(),
+                userId: auth.currentUser.uid
+            };
+            if (!data.saleQuantity || !data.salePrice) {
+                showModal('Input Required', 'Please fill in all required fields.');
+                return;
+            }
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/sales`), data);
+                showModal('Success!', 'Sales logged successfully.');
+                salesForm.reset();
+            } catch (error) {
+                console.error("Error logging sales: ", error);
+                showModal('Error', 'Failed to log sales. Please check the console.');
+            }
+        };
+
+        incidentsForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                incidentType: document.getElementById('incidentType').value,
+                incidentTitle: document.getElementById('incidentTitle').value,
+                incidentNotes: document.getElementById('incidentNotes').value,
+                status: 'Pending', // Initial status
+                timestamp: serverTimestamp(),
+                userId: auth.currentUser.uid
+            };
+            if (!data.incidentTitle || !data.incidentNotes) {
+                showModal('Input Required', 'Please fill in all required fields.');
+                return;
+            }
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/incidents`), data);
+                showModal('Success!', 'Incident reported successfully.');
+                incidentsForm.reset();
+            } catch (error) {
+                console.error("Error reporting incident: ", error);
+                showModal('Error', 'Failed to report incident. Please check the console.');
+            }
+        };
+
+        // --- Public Portal Logic ---
+        const marketplaceTab = document.getElementById('marketplace-tab');
+        const orderTrackingTab = document.getElementById('order-tracking-tab');
+        const traceabilityTab = document.getElementById('traceability-tab');
+        const marketplacePanel = document.getElementById('marketplace-panel');
+        const orderTrackingPanel = document.getElementById('order-tracking-panel');
+        const traceabilityPanel = document.getElementById('traceability-panel');
+        const buyBirdsButton = document.getElementById('buy-birds');
+        const buyEggsButton = document.getElementById('buy-eggs');
+        const orderFormContainer = document.getElementById('order-form-container');
+        const orderForm = document.getElementById('order-form');
+        const productInput = document.getElementById('product');
+        const trackOrderButton = document.getElementById('track-order-button');
+        const orderIdInput = document.getElementById('order-id-input');
+        const trackingResult = document.getElementById('tracking-result');
+        const trackingError = document.getElementById('tracking-error');
+        
+        function switchPublicTab(tab) {
+            marketplaceTab.classList.remove('active');
+            orderTrackingTab.classList.remove('active');
+            traceabilityTab.classList.remove('active');
+            marketplacePanel.classList.add('hidden');
+            orderTrackingPanel.classList.add('hidden');
+            traceabilityPanel.classList.add('hidden');
+            if (tab === 'marketplace') {
+                marketplaceTab.classList.add('active');
+                marketplacePanel.classList.remove('hidden');
+            } else if (tab === 'order-tracking') {
+                orderTrackingTab.classList.add('active');
+                orderTrackingPanel.classList.remove('hidden');
+                trackingResult.classList.add('hidden');
+                trackingError.classList.add('hidden');
+                orderIdInput.value = '';
+            } else if (tab === 'traceability') {
+                traceabilityTab.classList.add('active');
+                traceabilityPanel.classList.remove('hidden');
+            }
+        }
+        marketplaceTab.onclick = () => {
+            switchPublicTab('marketplace');
+            orderFormContainer.classList.add('hidden');
+        }
+        orderTrackingTab.onclick = () => switchPublicTab('order-tracking');
+        traceabilityTab.onclick = () => switchPublicTab('traceability');
+        buyBirdsButton.onclick = () => {
+            productInput.value = 'Birds';
+            orderFormContainer.classList.remove('hidden');
+            orderFormContainer.scrollIntoView({ behavior: 'smooth' });
+        };
+        buyEggsButton.onclick = () => {
+            productInput.value = 'Eggs';
+            orderFormContainer.classList.remove('hidden');
+            orderFormContainer.scrollIntoView({ behavior: 'smooth' });
+        };
+        orderForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const orderData = {
+                customerName: document.getElementById('customerName').value,
+                customerEmail: document.getElementById('customerEmail').value,
+                product: productInput.value,
+                quantity: parseInt(document.getElementById('quantity').value, 10),
+                status: 'Pending',
+                timestamp: new Date()
+            };
+            try {
+                const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/orders`), orderData);
+                const orderId = docRef.id;
+                showModal('Order Submitted!', `Your order has been placed. Your Order ID is: <strong class="text-teal-600">${orderId}</strong>. Use this to track your order.`)
+                orderForm.reset();
+                orderFormContainer.classList.add('hidden');
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                showModal('Order Failed', 'There was an error submitting your order. Please try again.');
+            }
+        };
+        trackOrderButton.onclick = async () => {
+            const orderId = orderIdInput.value.trim();
+            if (!orderId) {
+                showModal('Input Required', 'Please enter your Order ID.');
+                return;
+            }
+            trackingResult.classList.add('hidden');
+            trackingError.classList.add('hidden');
+            try {
+                const docRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('result-order-id').textContent = orderId;
+                    document.getElementById('result-product').textContent = data.product;
+                    document.getElementById('result-quantity').textContent = data.quantity;
+                    document.getElementById('result-status').textContent = data.status;
+                    const statusSpan = document.getElementById('result-status');
+                    statusSpan.classList.remove('text-blue-500', 'text-green-500', 'text-orange-500');
+                    if (data.status === 'Pending') {
+                        statusSpan.classList.add('text-blue-500');
+                    } else if (data.status === 'Processing') {
+                        statusSpan.classList.add('text-orange-500');
+                    } else if (data.status === 'Completed') {
+                        statusSpan.classList.add('text-green-500');
+                    }
+                    trackingResult.classList.remove('hidden');
+                } else {
+                    trackingError.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Error fetching document:", error);
+                showModal('Error', 'An error occurred while tracking your order. Check the console for details.');
+            }
+        };
+
+        // --- Traceability Logic (New) ---
+        const batchGeneratorForm = document.getElementById('batch-generator-form');
+        batchGeneratorForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(batchGeneratorForm);
+            const data = Object.fromEntries(formData.entries());
+            data.timestamp = serverTimestamp();
+            data.userId = auth.currentUser.uid;
+            
+            // Mock blockchain hash generation
+            const hashString = `${data.coopId}-${data.birdCount}-${data.feedType}-${data.timestamp}-${Math.random()}`;
+            data.blockchainHash = crypto.subtle ? 
+                await crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashString))
+                .then(buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('')) :
+                'simulated_hash_' + Math.random().toString(36).substring(2, 15);
+            
+            try {
+                const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/batches`), data);
+                const batchId = docRef.id;
+                document.getElementById('generated-batch-id').textContent = batchId;
+                document.getElementById('generated-qr-code').classList.remove('hidden');
+                showModal('Batch Generated!', `A new batch has been logged. The Batch ID is: ${batchId}. This ID is linked to the blockchain hash for traceability.`);
+                batchGeneratorForm.reset();
+            } catch (error) {
+                console.error("Error adding batch document: ", error);
+                showModal('Error', 'Failed to generate a new batch. Please check the console for details.');
+            }
+        };
+
+        document.getElementById('copy-qr-code').onclick = () => {
+            const batchId = document.getElementById('generated-batch-id').textContent;
+            navigator.clipboard.writeText(batchId).then(() => {
+                showModal('Copied!', 'Batch ID has been copied to your clipboard.');
+            }).catch(err => {
+                showModal('Copy Error', 'Could not copy to clipboard. Please select and copy the text manually.');
+                console.error('Failed to copy text: ', err);
+            });
+        };
+
+        document.getElementById('validate-batch-button').onclick = async () => {
+            const batchId = document.getElementById('batch-id-input').value.trim();
+            if (!batchId) {
+                showModal('Input Required', 'Please enter a Batch ID.');
+                return;
+            }
+            document.getElementById('validation-result').classList.add('hidden');
+            document.getElementById('validation-error').classList.add('hidden');
+            try {
+                const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/batches`, batchId));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('result-batch-id').textContent = batchId;
+                    document.getElementById('result-coop-id').textContent = data.coopId;
+                    document.getElementById('result-bird-count').textContent = data.birdCount;
+                    document.getElementById('result-feed-type').textContent = data.feedType;
+                    document.getElementById('result-blockchain-hash').textContent = data.blockchainHash;
+                    document.getElementById('result-batch-notes').textContent = data.batchNotes;
+                    document.getElementById('validation-result').classList.remove('hidden');
+                } else {
+                    document.getElementById('validation-error').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Error validating batch:", error);
+                showModal('Error', 'An error occurred during validation. Please check the console.');
+            }
+        };
+
+        // --- Utility & Modal Logic ---
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalClose = document.getElementById('modal-close');
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message; // Use innerHTML for strong tag
+            modal.style.display = 'flex';
+        }
+        modalClose.onclick = () => { modal.style.display = 'none'; };
+        
+        // --- Sign Out Logic ---
+        document.getElementById('admin-sign-out').onclick = () => {
+            signOut(auth).then(() => showPage('login'));
+        };
+        document.getElementById('staff-sign-out').onclick = () => {
+            signOut(auth).then(() => showPage('login'));
+        };
+        
+        // Anonymous sign-in for public pages on initial load
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                signInAnonymously(auth).then(() => {
+                    console.log('Signed in anonymously for public access.');
+                }).catch(error => {
+                    console.error('Anonymous sign-in failed:', error);
+                });
+            }
+        });
+
+        // --- Live Data Listeners ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // Listeners for Admin Dashboard
+                if (document.getElementById('admin-page').classList.contains('hidden') === false) {
+                    onSnapshot(collection(db, `artifacts/${appId}/users/${user.uid}/inventory`), (snapshot) => {
+                        const logs = [];
+                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
+                        document.getElementById('admin-inventory-list').innerHTML = logs.map(renderAdminInventory).join('');
+                    });
+                    onSnapshot(collection(db, `artifacts/${appId}/users/${user.uid}/sales`), (snapshot) => {
+                        const logs = [];
+                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
+                        document.getElementById('admin-sales-list').innerHTML = logs.map(renderAdminSale).join('');
+                    });
+                    onSnapshot(collection(db, `artifacts/${appId}/users/${user.uid}/incidents`), (snapshot) => {
+                        const logs = [];
+                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
+                        document.getElementById('admin-incidents-list').innerHTML = logs.map(renderAdminIncident).join('');
+                        updateAdminAnalytics(logs, [], []); // sales and inventory passed empty for simplicity
+                    });
+                    // New Regulator Panel Listener (Reads all public data)
+                    onSnapshot(collection(db, `artifacts/${appId}/public/data/incidents`), (snapshot) => {
+                        const logs = [];
+                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
+                        document.getElementById('regulator-incidents').innerHTML = logs.map(renderAdminIncident).join('');
+                    });
+                     onSnapshot(collection(db, `artifacts/${appId}/public/data/batches`), (snapshot) => {
+                        const logs = [];
+                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
+                        document.getElementById('regulator-traceability').innerHTML = logs.map(log => `<div class="list-item flex-col items-start"><p class="font-medium">Batch ID: ${log.id}</p><p class="text-xs">Coop: ${log.coopId}, Birds: ${log.birdCount}</p></div>`).join('');
+                    });
+                }
+            }
+        });
+        
+    </script>
+</body>
+</html>
