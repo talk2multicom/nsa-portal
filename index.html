@@ -15,7 +15,7 @@
             padding: 0.75rem 1.5rem;
             border-radius: 0.5rem;
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1- rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .gradient-button:hover {
             transform: translateY(-2px);
@@ -791,15 +791,16 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, addDoc, collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, setLogLevel, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
         // Libraries for PDF and Excel generation from CDNs
         import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
         import "https://unpkg.com/xlsx/dist/xlsx.full.min.js";
 
-        setLogLevel('debug');
+        // --- Firebase SDK imports from a stable CDN version (v8) ---
+        import firebase from "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js";
+        import "https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js";
+        import "https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js";
+
+        firebase.firestore.setLogLevel('debug');
         
         const appId = 'nsa-miot';
         const firebaseConfig = {
@@ -814,9 +815,9 @@
 
         let app, auth, db;
         try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
+            app = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
             console.log('Firebase initialized successfully.');
         } catch (e) {
             console.error('Firebase initialization failed:', e);
@@ -962,7 +963,7 @@
                 traceability_header: 'Hwehwɛ Mmuada',
                 traceability_prompt: 'Fa nnoɔma Batch ID hyɛ mu.',
                 traceability_id: 'Batch ID',
-                traceability_button: 'Hwehwɛ Batch',
+                traceability_button: 'Bɔ amanneɛ',
                 modal_ok: 'Yoo'
             },
             'ee': { // Ewe
@@ -1149,7 +1150,7 @@
         
         // Listen for user to choose the public portal, then sign in anonymously
         document.getElementById('show-public-portal').onclick = () => {
-            signInAnonymously(auth).then((result) => {
+            firebase.auth().signInAnonymously().then((result) => {
                 showPage('public');
             }).catch(error => {
                 console.error('Anonymous sign-in failed:', error);
@@ -1157,7 +1158,7 @@
             });
         };
         document.getElementById('show-login-portal').onclick = () => {
-            signOut(auth).then(() => {
+            firebase.auth().signOut().then(() => {
                 showPage('login');
             }).catch((error) => {
                 console.error("Sign out failed: ", error);
@@ -1173,7 +1174,7 @@
             const password = document.getElementById('password').value;
             try {
                 // This will trigger the onAuthStateChanged listener to handle redirection
-                await signInWithEmailAndPassword(auth, email, password);
+                await firebase.auth().signInWithEmailAndPassword(email, password);
             } catch (error) {
                 console.error("Login failed:", error);
                 showModal('Login Failed', 'Invalid email or password. Please try again.');
@@ -1181,7 +1182,7 @@
         });
 
         // The central state listener for all page redirection
-        onAuthStateChanged(auth, (user) => {
+        firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 if (user.isAnonymous) {
                     const customerUserIdSpan = document.getElementById('customer-user-id');
@@ -1208,7 +1209,7 @@
                         }
                         showPage('staff');
                     } else {
-                        signOut(auth);
+                        firebase.auth().signOut();
                         showModal('Access Denied', 'Your account does not have access to an internal portal.');
                         showPage('login');
                     }
@@ -1399,12 +1400,12 @@
         window.updateOrderStatus = async (orderId) => {
             const selectElement = document.getElementById(`status-update-${orderId}`);
             const newStatus = selectElement.value;
-            const orderRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
+            const orderRef = db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId);
             try {
-                const docSnap = await getDoc(orderRef);
+                const docSnap = await orderRef.get();
                 const currentHistory = docSnap.data().deliveryHistory || [];
-                const newHistory = [...currentHistory, { status: newStatus, timestamp: serverTimestamp() }];
-                await updateDoc(orderRef, {
+                const newHistory = [...currentHistory, { status: newStatus, timestamp: firebase.firestore.FieldValue.serverTimestamp() }];
+                await orderRef.update({
                     status: newStatus,
                     deliveryHistory: newHistory
                 });
@@ -1450,14 +1451,14 @@
                 type: document.getElementById('asset-type').value,
                 assignedTo: document.getElementById('asset-assigned-to').value,
                 status: 'Available',
-                timestamp: serverTimestamp()
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
             if (!data.name || !data.type) {
                 showModal('Input Required', 'Please fill in all required fields.');
                 return;
             }
             try {
-                await addDoc(collection(db, `artifacts/${appId}/public/data/assets`), data);
+                await db.collection(`artifacts/${appId}/public/data/assets`).add(data);
                 showModal('Success!', 'Asset added successfully.');
                 addAssetForm.reset();
             } catch (error) {
@@ -1477,14 +1478,14 @@
                 assignedTo: document.getElementById('task-assigned-to').value,
                 dueDate: document.getElementById('task-due-date').value,
                 status: 'Assigned',
-                timestamp: serverTimestamp()
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
             if (!data.title || !data.assignedTo) {
                 showModal('Input Required', 'Please fill in all required fields.');
                 return;
             }
             try {
-                await addDoc(collection(db, `artifacts/${appId}/public/data/work_orders`), data);
+                await db.collection(`artifacts/${appId}/public/data/work_orders`).add(data);
                 showModal('Success!', 'Task assigned successfully.');
                 assignTaskForm.reset();
             } catch (error) {
@@ -1545,11 +1546,11 @@
         staffAssetsTab.onclick = () => switchStaffTab('assets');
         staffTasksTab.onclick = () => switchStaffTab('tasks');
         
-        onAuthStateChanged(auth, user => {
+        firebase.auth().onAuthStateChanged(user => {
             if (user && !user.isAnonymous) {
                 // Listen for changes to the user's private inventory logs
-                const inventoryRef = collection(db, `artifacts/${appId}/users/${user.uid}/inventory`);
-                onSnapshot(query(inventoryRef), (snapshot) => {
+                const inventoryRef = db.collection(`artifacts/${appId}/users/${user.uid}/inventory`);
+                inventoryRef.onSnapshot((snapshot) => {
                     const logs = [];
                     snapshot.forEach(doc => {
                         logs.push({ id: doc.id, ...doc.data() });
@@ -1557,8 +1558,8 @@
                     renderRecentInventory(logs);
                 });
                 // Listen for assets assigned to this user
-                const assetsRef = collection(db, `artifacts/${appId}/public/data/assets`);
-                onSnapshot(query(assetsRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                const assetsRef = db.collection(`artifacts/${appId}/public/data/assets`);
+                assetsRef.where('assignedTo', '==', user.uid).onSnapshot((snapshot) => {
                     const assets = [];
                     snapshot.forEach(doc => {
                         assets.push({ id: doc.id, ...doc.data() });
@@ -1566,8 +1567,8 @@
                     renderStaffAssets(assets);
                 });
                 // Listen for tasks assigned to this user
-                const tasksRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
-                onSnapshot(query(tasksRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                const tasksRef = db.collection(`artifacts/${appId}/public/data/work_orders`);
+                tasksRef.where('assignedTo', '==', user.uid).onSnapshot((snapshot) => {
                     const tasks = [];
                     snapshot.forEach(doc => {
                         tasks.push({ id: doc.id, ...doc.data() });
@@ -1602,7 +1603,7 @@
                         <span class="text-lg font-bold text-gray-800">${asset.name}</span>
                         <span class="text-sm text-gray-500 mt-1">Type: ${asset.type}</span>
                         <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
-                        <span class="text-xs font-semibold mt-2 px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
                     </div>
                 `).join('');
             }
@@ -1626,11 +1627,11 @@
             }
         }
         window.updateTaskStatus = async (taskId, newStatus) => {
-             const taskRef = doc(db, `artifacts/${appId}/public/data/work_orders`, taskId);
+             const taskRef = db.collection(`artifacts/${appId}/public/data/work_orders`).doc(taskId);
              try {
-                 await updateDoc(taskRef, {
+                 await taskRef.update({
                      status: newStatus,
-                     completedAt: serverTimestamp()
+                     completedAt: firebase.firestore.FieldValue.serverTimestamp()
                  });
                  showModal('Success!', 'Task status updated successfully.');
              } catch (error) {
@@ -1647,15 +1648,15 @@
                 itemName: document.getElementById('itemName').value,
                 quantity: parseInt(document.getElementById('quantity').value, 10),
                 deliveryNotes: document.getElementById('deliveryNotes').value,
-                timestamp: serverTimestamp(),
-                userId: auth.currentUser.uid
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: firebase.auth().currentUser.uid
             };
             if (!data.coopId || !data.itemName || !data.quantity) {
                 showModal('Input Required', 'Please fill in all required fields.');
                 return;
             }
             try {
-                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/inventory`), data);
+                await db.collection(`artifacts/${appId}/users/${firebase.auth().currentUser.uid}/inventory`).add(data);
                 showModal('Success!', 'Inventory logged successfully.');
                 inventoryForm.reset();
             } catch (error) {
@@ -1671,15 +1672,15 @@
                 saleQuantity: parseInt(document.getElementById('saleQuantity').value, 10),
                 salePrice: parseFloat(document.getElementById('salePrice').value),
                 saleNotes: document.getElementById('saleNotes').value,
-                timestamp: serverTimestamp(),
-                userId: auth.currentUser.uid
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: firebase.auth().currentUser.uid
             };
             if (!data.saleQuantity || !data.salePrice) {
                 showModal('Input Required', 'Please fill in all required fields.');
                 return;
             }
             try {
-                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/sales`), data);
+                await db.collection(`artifacts/${appId}/users/${firebase.auth().currentUser.uid}/sales`).add(data);
                 showModal('Success!', 'Sales logged successfully.');
                 salesForm.reset();
             } catch (error) {
@@ -1699,15 +1700,15 @@
                 incidentNotes: document.getElementById('incidentNotes').value,
                 photoUrl: photoUrl,
                 status: 'Pending',
-                timestamp: serverTimestamp(),
-                userId: auth.currentUser.uid
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: firebase.auth().currentUser.uid
             };
             if (!data.incidentTitle || !data.incidentNotes) {
                 showModal('Input Required', 'Please fill in all required fields.');
                 return;
             }
             try {
-                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/incidents`), data);
+                await db.collection(`artifacts/${appId}/users/${firebase.auth().currentUser.uid}/incidents`).add(data);
                 showModal('Success!', 'Incident reported successfully. Photo upload simulated.');
                 incidentsForm.reset();
             } catch (error) {
@@ -1783,7 +1784,7 @@
                 timestamp: new Date()
             };
             try {
-                const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/orders`), orderData);
+                const docRef = await db.collection(`artifacts/${appId}/public/data/orders`).add(orderData);
                 const orderId = docRef.id;
                 showModal('Order Submitted!', `Your order has been placed. Your Order ID is: <strong class="text-teal-600">${orderId}</strong>. Use this to track your order.`)
                 orderForm.reset();
@@ -1802,9 +1803,8 @@
             trackingResult.classList.add('hidden');
             trackingError.classList.add('hidden');
             try {
-                const docRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
+                const docSnap = await db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId).get();
+                if (docSnap.exists) {
                     const data = docSnap.data();
                     document.getElementById('result-order-id').textContent = orderId;
                     document.getElementById('result-product').textContent = data.product;
@@ -1827,7 +1827,7 @@
                     if (data.deliveryHistory && data.deliveryHistory.length > 0) {
                         data.deliveryHistory.forEach(step => {
                             const li = document.createElement('li');
-                            li.textContent = `${new Date(step.timestamp.seconds * 1000).toLocaleString()}: ${step.status}`;
+                            li.textContent = `${new Date(step.timestamp.toDate()).toLocaleString()}: ${step.status}`;
                             historyList.appendChild(li);
                         });
                     } else {
@@ -1849,8 +1849,8 @@
             e.preventDefault();
             const formData = new FormData(batchGeneratorForm);
             const data = Object.fromEntries(formData.entries());
-            data.timestamp = serverTimestamp();
-            data.userId = auth.currentUser.uid;
+            data.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+            data.userId = firebase.auth().currentUser.uid;
             
             // Mock blockchain hash generation
             const hashString = `${data.coopId}-${data.birdCount}-${data.feedType}-${data.timestamp}-${Math.random()}`;
@@ -1860,11 +1860,11 @@
                 'simulated_hash_' + Math.random().toString(36).substring(2, 15);
             
             try {
-                const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/batches`), data);
+                const docRef = await db.collection(`artifacts/${appId}/public/data/batches`).add(data);
                 const batchId = docRef.id;
                 document.getElementById('generated-batch-id').textContent = batchId;
                 document.getElementById('generated-qr-code').classList.remove('hidden');
-                showModal('Batch Generated!', `A new batch has been logged. The Batch ID is: ${batchId}. This ID is linked to the blockchain hash for traceability.`);
+                showModal('Batch Generated!', `A new batch has been logged. The Batch ID is: <strong class="text-teal-600">${batchId}</strong>. This ID is linked to the blockchain hash for traceability.`);
                 batchGeneratorForm.reset();
             } catch (error) {
                 console.error("Error adding batch document: ", error);
@@ -1891,8 +1891,8 @@
             document.getElementById('validation-result').classList.add('hidden');
             document.getElementById('validation-error').classList.add('hidden');
             try {
-                const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/batches`, batchId));
-                if (docSnap.exists()) {
+                const docSnap = await db.collection(`artifacts/${appId}/public/data/batches`).doc(batchId).get();
+                if (docSnap.exists) {
                     const data = docSnap.data();
                     document.getElementById('result-batch-id').textContent = batchId;
                     document.getElementById('result-coop-id').textContent = data.coopId;
@@ -1924,16 +1924,16 @@
         
         // --- Sign Out Logic ---
         document.getElementById('admin-sign-out').onclick = () => {
-            signOut(auth).then(() => window.location.reload());
+            firebase.auth().signOut().then(() => window.location.reload());
         };
         document.getElementById('staff-sign-out').onclick = () => {
-            signOut(auth).then(() => window.location.reload());
+            firebase.auth().signOut().then(() => window.location.reload());
         };
         
         // Anonymous sign-in for public pages on initial load
-        onAuthStateChanged(auth, (user) => {
+        firebase.auth().onAuthStateChanged((user) => {
             if (!user) {
-                signInAnonymously(auth).then(() => {
+                firebase.auth().signInAnonymously().then(() => {
                     console.log('Signed in anonymously for public access.');
                 }).catch(error => {
                     console.error('Anonymous sign-in failed:', error);
@@ -1942,49 +1942,49 @@
         });
 
         // --- Live Data Listeners ---
-        onAuthStateChanged(auth, user => {
+        firebase.auth().onAuthStateChanged(user => {
             if (user) {
                 // Admin dashboard listeners - get data for reports and analytics
                 if (user.email === 'admin@nsa.com') {
-                    onSnapshot(collection(db, `artifacts/${appId}/public/data/orders`), (snapshot) => {
+                    db.collection(`artifacts/${appId}/public/data/orders`).onSnapshot((snapshot) => {
                         salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         const ordersList = document.getElementById('admin-orders-list');
                         ordersList.innerHTML = salesData.map(renderAdminOrder).join('');
                         updateAdminAnalytics();
                     });
-                    onSnapshot(collection(db, `artifacts/${appId}/public/data/incidents`), (snapshot) => {
+                    db.collection(`artifacts/${appId}/public/data/incidents`).onSnapshot((snapshot) => {
                         incidentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         document.getElementById('admin-incidents-list').innerHTML = incidentsData.map(renderAdminIncident).join('');
                         updateAdminAnalytics();
                     });
-                    onSnapshot(collection(db, `artifacts/${appId}/public/data/warehouse_deliveries`), (snapshot) => {
+                    db.collection(`artifacts/${appId}/public/data/warehouse_deliveries`).onSnapshot((snapshot) => {
                         deliveriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         updateAdminAnalytics();
                     });
-                    onSnapshot(collection(db, `artifacts/${appId}/public/data/sales`), (snapshot) => {
+                    db.collection(`artifacts/${appId}/public/data/sales`).onSnapshot((snapshot) => {
                         salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         document.getElementById('admin-sales-list').innerHTML = salesData.map(renderAdminSale).join('');
                         updateAdminAnalytics();
                     });
-                     onSnapshot(collection(db, `artifacts/${appId}/public/data/inventory`), (snapshot) => {
+                     db.collection(`artifacts/${appId}/public/data/inventory`).onSnapshot((snapshot) => {
                         const logs = [];
                         snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
                         document.getElementById('admin-inventory-list').innerHTML = logs.map(renderAdminInventory).join('');
                     });
                     
                     // New Regulator Panel Listener (Reads all public data)
-                    onSnapshot(collection(db, `artifacts/${appId}/public/data/incidents`), (snapshot) => {
+                    db.collection(`artifacts/${appId}/public/data/incidents`).onSnapshot((snapshot) => {
                         const logs = [];
                         snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
                         document.getElementById('regulator-incidents').innerHTML = logs.map(renderAdminIncident).join('');
                     });
-                     onSnapshot(collection(db, `artifacts/${appId}/public/data/batches`), (snapshot) => {
+                     db.collection(`artifacts/${appId}/public/data/batches`).onSnapshot((snapshot) => {
                         const logs = [];
                         snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
                         document.getElementById('regulator-traceability').innerHTML = logs.map(log => `<div class="list-item flex-col items-start"><p class="font-medium">Batch ID: ${log.id}</p><p class="text-xs">Coop: ${log.coopId}, Birds: ${log.birdCount}</p></div>`).join('');
                     });
                      // Admin Assets Listener
-                    onSnapshot(collection(db, `artifacts/${appId}/public/data/assets`), (snapshot) => {
+                    db.collection(`artifacts/${appId}/public/data/assets`).onSnapshot((snapshot) => {
                         const assets = [];
                         snapshot.forEach(doc => assets.push({ id: doc.id, ...doc.data() }));
                         adminAssetList.innerHTML = assets.map(asset => `
@@ -1998,8 +1998,8 @@
                     });
 
                     // New Warehouse Listeners
-                    const warehouseStockRef = collection(db, `artifacts/${appId}/public/data/warehouse_stock`);
-                    onSnapshot(warehouseStockRef, (snapshot) => {
+                    const warehouseStockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`);
+                    warehouseStockRef.onSnapshot((snapshot) => {
                         const stockItems = [];
                         snapshot.forEach(doc => stockItems.push({ id: doc.id, ...doc.data() }));
                         const stockListHtml = stockItems.map(item => `
@@ -2016,46 +2016,46 @@
                     });
                     
                     // Admin Tasks Listener
-                    const workOrdersRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
-                    onSnapshot(query(workOrdersRef), (snapshot) => {
+                    const workOrdersRef = db.collection(`artifacts/${appId}/public/data/work_orders`);
+                    workOrdersRef.onSnapshot((snapshot) => {
                          const tasks = [];
                          snapshot.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
                          adminTaskList.innerHTML = tasks.map(renderAdminTask).join('');
                     });
 
                     // BLE Tracking Listener (Simulated)
-                    onSnapshot(collection(db, `artifacts/${appId}/public/data/ble_logs`), (snapshot) => {
+                    db.collection(`artifacts/${appId}/public/data/ble_logs`).onSnapshot((snapshot) => {
                         const bleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         document.getElementById('ble-tracking-list').innerHTML = bleLogs.map(log => `
                             <div class="list-item flex-col items-start">
                                 <span class="font-bold text-gray-800">${log.deviceName}</span>
                                 <span class="text-sm text-gray-500">User ID: ${log.userId}</span>
                                 <span class="text-xs text-gray-400">Lat/Lng: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}</span>
-                                <span class="text-xs text-gray-400">Timestamp: ${new Date(log.timestamp.toDate()).toLocaleString()}</span>
+                                <span class="text-xs text-gray-400">Timestamp: ${log.timestamp.toDate().toLocaleString()}</span>
                             </div>
                         `).join('');
                     });
 
                 } else if (user.email === 'staff@nsa.com') {
                    // Listeners for Staff App
-                    const inventoryRef = collection(db, `artifacts/${appId}/users/${user.uid}/inventory`);
-                    onSnapshot(query(inventoryRef), (snapshot) => {
+                    const inventoryRef = db.collection(`artifacts/${appId}/users/${user.uid}/inventory`);
+                    inventoryRef.onSnapshot((snapshot) => {
                         const logs = [];
                         snapshot.forEach(doc => {
                             logs.push({ id: doc.id, ...doc.data() });
                         });
                         renderRecentInventory(logs);
                     });
-                    const assetsRef = collection(db, `artifacts/${appId}/public/data/assets`);
-                    onSnapshot(query(assetsRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                    const assetsRef = db.collection(`artifacts/${appId}/public/data/assets`);
+                    assetsRef.where('assignedTo', '==', user.uid).onSnapshot((snapshot) => {
                         const assets = [];
                         snapshot.forEach(doc => {
                             assets.push({ id: doc.id, ...doc.data() });
                         });
                         renderStaffAssets(assets);
                     });
-                    const tasksRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
-                    onSnapshot(query(tasksRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                    const tasksRef = db.collection(`artifacts/${appId}/public/data/work_orders`);
+                    tasksRef.where('assignedTo', '==', user.uid).onSnapshot((snapshot) => {
                         const tasks = [];
                         snapshot.forEach(doc => {
                             tasks.push({ id: doc.id, ...doc.data() });
@@ -2075,8 +2075,8 @@
                 itemType: document.getElementById('warehouse-item-type').value,
                 quantity: parseInt(document.getElementById('warehouse-quantity').value, 10),
                 supplier: document.getElementById('warehouse-supplier').value,
-                timestamp: serverTimestamp(),
-                adminId: auth.currentUser.uid
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                adminId: firebase.auth().currentUser.uid
             };
             if (!data.itemName || !data.quantity) {
                 showModal('Input Required', 'Please fill in all required fields.');
@@ -2084,21 +2084,21 @@
             }
             try {
                 // Log the delivery
-                await addDoc(collection(db, `artifacts/${appId}/public/data/warehouse_deliveries`), data);
+                await db.collection(`artifacts/${appId}/public/data/warehouse_deliveries`).add(data);
                 // Update the central stock
-                const stockRef = doc(db, `artifacts/${appId}/public/data/warehouse_stock`, data.itemName);
-                const stockSnap = await getDoc(stockRef);
-                if (stockSnap.exists()) {
-                    await updateDoc(stockRef, {
+                const stockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`).doc(data.itemName);
+                const stockSnap = await stockRef.get();
+                if (stockSnap.exists) {
+                    await stockRef.update({
                         quantity: stockSnap.data().quantity + data.quantity,
-                        timestamp: serverTimestamp()
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 } else {
-                    await setDoc(stockRef, {
+                    await stockRef.set({
                         itemName: data.itemName,
                         itemType: data.itemType,
                         quantity: data.quantity,
-                        timestamp: serverTimestamp()
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
                 showModal('Success!', 'Delivery logged and stock updated successfully.');
@@ -2121,17 +2121,17 @@
                 return;
             }
             try {
-                const stockRef = doc(db, `artifacts/${appId}/public/data/warehouse_stock`, itemName);
-                const stockSnap = await getDoc(stockRef);
-                if (!stockSnap.exists() || stockSnap.data().quantity < quantity) {
+                const stockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`).doc(itemName);
+                const stockSnap = await stockRef.get();
+                if (!stockSnap.exists || stockSnap.data().quantity < quantity) {
                     showModal('Dispatch Failed', 'Not enough stock available for this item.');
                     return;
                 }
 
                 // Decrement warehouse stock
-                await updateDoc(stockRef, {
+                await stockRef.update({
                     quantity: stockSnap.data().quantity - quantity,
-                    timestamp: serverTimestamp()
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
                 // Log the dispatch
@@ -2139,22 +2139,22 @@
                     itemName,
                     quantity,
                     staffUid,
-                    timestamp: serverTimestamp(),
-                    adminId: auth.currentUser.uid
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    adminId: firebase.auth().currentUser.uid
                 };
-                await addDoc(collection(db, `artifacts/${appId}/public/data/dispatches`), dispatchData);
+                await db.collection(`artifacts/${appId}/public/data/dispatches`).add(dispatchData);
 
                 // Add to staff's private inventory
-                const staffInventoryRef = collection(db, `artifacts/${appId}/users/${staffUid}/inventory`);
+                const staffInventoryRef = db.collection(`artifacts/${appId}/users/${staffUid}/inventory`);
                 const staffInventoryData = {
                     itemName,
                     itemType: stockSnap.data().itemType,
                     quantity,
                     coopId: 'Dispatch from Warehouse',
-                    deliveryNotes: `Dispatched from warehouse by admin ${auth.currentUser.uid}`,
-                    timestamp: serverTimestamp()
+                    deliveryNotes: `Dispatched from warehouse by admin ${firebase.auth().currentUser.uid}`,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 };
-                await addDoc(staffInventoryRef, staffInventoryData);
+                await staffInventoryRef.add(staffInventoryData);
 
                 showModal('Dispatch Successful!', `${quantity} units of ${itemName} dispatched to staff member.`);
                 dispatchForm.reset();
@@ -2178,7 +2178,7 @@
                 sale.saleItem,
                 sale.saleQuantity,
                 `GHS ${sale.salePrice.toFixed(2)}`,
-                sale.timestamp ? new Date(sale.timestamp.toDate()).toLocaleDateString() : 'N/A'
+                sale.timestamp ? sale.timestamp.toDate().toLocaleDateString() : 'N/A'
             ]);
             doc.autoTable({
                 startY: y + 5,
@@ -2193,7 +2193,7 @@
                 incident.incidentTitle,
                 incident.incidentType,
                 incident.status,
-                incident.timestamp ? new Date(incident.timestamp.toDate()).toLocaleDateString() : 'N/A'
+                incident.timestamp ? incident.timestamp.toDate().toLocaleDateString() : 'N/A'
             ]);
             doc.autoTable({
                 startY: y + 5,
@@ -2217,7 +2217,7 @@
                     sale.saleItem,
                     sale.saleQuantity,
                     sale.salePrice,
-                    sale.timestamp ? new Date(sale.timestamp.toDate()).toLocaleDateString() : 'N/A'
+                    sale.timestamp ? sale.timestamp.toDate().toLocaleDateString() : 'N/A'
                 ]),
                 [],
                 ["Incident Summary"],
@@ -2227,7 +2227,7 @@
                     incident.incidentTitle,
                     incident.incidentType,
                     incident.status,
-                    incident.timestamp ? new Date(incident.timestamp.toDate()).toLocaleDateString() : 'N/A'
+                    incident.timestamp ? incident.timestamp.toDate().toLocaleDateString() : 'N/A'
                 ])
             ];
 
@@ -2249,12 +2249,12 @@
              const randomLat = 5.6148 + (Math.random() - 0.5) * 0.05; // Around Accra
              const randomLng = -0.1869 + (Math.random() - 0.5) * 0.05; // Around Accra
              try {
-                await addDoc(collection(db, `artifacts/${appId}/public/data/ble_logs`), {
+                await db.collection(`artifacts/${appId}/public/data/ble_logs`).add({
                     deviceName: `${randomStaff.name}'s ID Card`,
                     userId: randomStaff.id,
                     latitude: randomLat,
                     longitude: randomLng,
-                    timestamp: serverTimestamp()
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 showModal('BLE Log Simulated', `A new BLE location log for ${randomStaff.name} has been added.`);
              } catch (error) {
