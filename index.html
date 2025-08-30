@@ -106,15 +106,35 @@
             object-fit: cover;
             border-radius: 0.75rem;
         }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #0d9488;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center min-h-screen p-4">
 
+    <!-- Loading Screen (Visible by default) -->
+    <div id="loading-page" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-50">
+        <div class="flex flex-col items-center">
+            <div class="loading-spinner"></div>
+            <p class="mt-4 text-gray-500">Loading...</p>
+        </div>
+    </div>
+
     <!-- Main Container to hold all pages -->
-    <div id="app-container" class="w-full max-w-5xl mx-auto flex flex-col items-center">
+    <div id="app-container" class="w-full max-w-5xl mx-auto flex flex-col items-center hidden">
 
         <!-- Login Portal Page -->
-        <div id="login-page" class="w-full max-w-sm">
+        <div id="login-page" class="w-full max-w-sm hidden">
             <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm">
                 <h1 class="text-2xl font-bold text-center text-gray-800">NSA Ecosystem</h1>
                 <p class="text-center text-sm text-gray-500 mt-2">Sign in to access your portal.</p>
