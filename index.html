@@ -106,35 +106,15 @@
             object-fit: cover;
             border-radius: 0.75rem;
         }
-        .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: #0d9488;
-            animation: spin 1s ease infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center min-h-screen p-4">
 
-    <!-- Loading Screen (Visible by default) -->
-    <div id="loading-page" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-50">
-        <div class="flex flex-col items-center">
-            <div class="loading-spinner"></div>
-            <p class="mt-4 text-gray-500">Loading...</p>
-        </div>
-    </div>
-
     <!-- Main Container to hold all pages -->
-    <div id="app-container" class="w-full max-w-5xl mx-auto flex flex-col items-center hidden">
+    <div id="app-container" class="w-full max-w-5xl mx-auto flex flex-col items-center">
 
         <!-- Login Portal Page -->
-        <div id="login-page" class="w-full max-w-sm hidden">
+        <div id="login-page" class="w-full max-w-sm">
             <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm">
                 <h1 class="text-2xl font-bold text-center text-gray-800">NSA Ecosystem</h1>
                 <p class="text-center text-sm text-gray-500 mt-2">Sign in to access your portal.</p>
@@ -810,15 +790,16 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js"></script>
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-
-    <script>
-        firebase.firestore.setLogLevel('debug');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+        import { getFirestore, addDoc, collection, doc, getDoc, onSnapshot, query, where, serverTimestamp, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
         
+        // Libraries for PDF and Excel generation from CDNs
+        import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
+        import "https://unpkg.com/xlsx/dist/xlsx.full.min.js";
+        
+        // Constants
         const appId = 'nsa-miot';
         const firebaseConfig = {
             apiKey: "AIzaSyDDbxNeMpLncUVPJtmtsFzNq0zLA9nHB_U",
@@ -829,330 +810,33 @@
             appId: "1:1078189349427:web:9c4d6503c71da21fd2a146",
             measurementId: "G-9RFX2052QE"
         };
-
+        
+        // Firebase initialization
         let app, auth, db;
         try {
-            app = firebase.initializeApp(firebaseConfig);
-            auth = firebase.auth();
-            db = firebase.firestore();
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
             console.log('Firebase initialized successfully.');
         } catch (e) {
             console.error('Firebase initialization failed:', e);
             showModal('Initialization Error', 'Failed to initialize Firebase. Check your configuration.');
         }
 
-        // --- Language & UI State ---
-        const translations = {
-            'en': {
-                login_title: 'NSA Ecosystem',
-                login_subtitle: 'Sign in to access your portal.',
-                login_email: 'Email',
-                login_password: 'Password',
-                login_button: 'Sign In',
-                login_public_prompt: 'Are you a customer or validator?',
-                login_public_button: 'Access Public Portal',
-                admin_title: 'NSA Admin Dashboard',
-                admin_subtitle: 'Real-time analytics and management.',
-                admin_user_id: 'User ID',
-                admin_sign_out: 'Sign Out',
-                admin_overview: 'Overview',
-                admin_inventory: 'Inventory',
-                admin_sales: 'Sales',
-                admin_incidents: 'Incidents',
-                admin_traceability: 'Traceability',
-                admin_training: 'Training',
-                admin_regulator: 'Regulator',
-                staff_title: 'Field Staff App',
-                staff_subtitle: 'Log and track data in real-time.',
-                staff_user_id: 'User ID',
-                staff_sign_out: 'Sign Out',
-                staff_inventory: 'Inventory',
-                staff_sales: 'Sales',
-                staff_incidents: 'Incidents',
-                inventory_header: 'Log Inventory Delivery',
-                inventory_coop: 'Coop ID',
-                inventory_item_type: 'Item Type',
-                inventory_item_name: 'Item Name',
-                inventory_quantity: 'Quantity',
-                inventory_notes: 'Delivery Notes',
-                inventory_log_button: 'Log Inventory',
-                sales_header: 'Track Sales',
-                sales_item: 'Item Sold',
-                sales_quantity: 'Quantity Sold',
-                sales_revenue: 'Total Revenue (GHS)',
-                sales_notes: 'Sale Notes',
-                sales_log_button: 'Log Sales',
-                incidents_header: 'Report Incident',
-                incidents_type: 'Incident Type',
-                incidents_title: 'Incident Title',
-                incidents_description: 'Description',
-                incidents_report_button: 'Report Incident',
-                public_title: 'NSA Customer Portal',
-                public_subtitle: 'Browse our products and track your orders.',
-                public_user_id: 'User ID',
-                public_sign_in: 'Internal Sign-in',
-                public_marketplace: 'Marketplace',
-                public_track_order: 'Track Order',
-                public_traceability: 'Traceability',
-                marketplace_products: 'Available Products',
-                marketplace_birds: 'Live Birds',
-                marketplace_eggs: 'Fresh Eggs',
-                order_form_header: 'Place Your Order',
-                order_name: 'Your Name',
-                order_email: 'Email',
-                order_product: 'Product',
-                order_quantity: 'Quantity',
-                order_submit: 'Submit Order Request',
-                order_tracking_header: 'Track Your Order',
-                order_tracking_prompt: 'Enter your order ID below.',
-                order_tracking_id: 'Order ID',
-                order_tracking_button: 'Track Order',
-                traceability_header: 'Validate Product Traceability',
-                traceability_prompt: 'Enter a product Batch ID to view its history.',
-                traceability_id: 'Batch ID',
-                traceability_button: 'Validate Batch',
-                modal_ok: 'OK'
-            },
-            'tw': { // Twi (Fante)
-                login_title: 'NSA Ecosystem',
-                login_subtitle: 'Fa wo nsɛmfua hyɛ mu kɔ w\'adwuma mu.',
-                login_email: 'Email',
-                login_password: 'Password',
-                login_button: 'Fa wo nkyerɛwee gu mu',
-                login_public_prompt: 'Woyɛ ɔkyini anaa ahwehwɛfoɔ?',
-                login_public_button: 'Kɔ baabi a obiara bɛtumi akɔ',
-                admin_title: 'NSA Adwumayɛfoɔ Dashboard',
-                admin_subtitle: 'Mprɛprɛnsoɔ mu nkyerɛkyerɛmu ne adwuma.',
-                admin_user_id: 'Onipa Nkyerɛwee',
-                admin_sign_out: 'Fi adi',
-                admin_overview: 'Nsɛm Pɔtee',
-                admin_inventory: 'Nnoɔma',
-                admin_sales: 'Tɔn',
-                admin_incidents: 'Akwanhyia',
-                admin_traceability: 'Mmuada',
-                admin_training: 'Nkyerɛkyerɛ',
-                admin_regulator: 'Nnwumayɛfoɔ',
-                staff_title: 'Adwumayɛfoɔ App',
-                staff_subtitle: 'Fa nsɛm hyɛ mu prɛko pɛ.',
-                staff_user_id: 'Onipa Nkyerɛwee',
-                staff_sign_out: 'Fi adi',
-                staff_inventory: 'Nnoɔma',
-                staff_sales: 'Tɔn',
-                staff_incidents: 'Akwanhyia',
-                inventory_header: 'Fa Nnoɔma Baabi A Wɔde Kɔ',
-                inventory_coop: 'Coop Nkyerɛwee',
-                inventory_item_type: 'Nnoɔma su',
-                inventory_item_name: 'Nnoɔma din',
-                inventory_quantity: 'Ne dodoɔ',
-                inventory_notes: 'Nsɛm a ɛfa nnoɔma a wɔde ma ho',
-                inventory_log_button: 'Fa Nnoɔma hyɛ mu',
-                sales_header: 'Tɔn Nneɛma',
-                sales_item: 'Nneɛma a wɔatɔn',
-                sales_quantity: 'Nneɛma dodoɔ',
-                sales_revenue: 'Sika a ɛbae (GHS)',
-                sales_notes: 'Nnoɔma a wɔatɔn ho nsɛm',
-                sales_log_button: 'Fa Tɔn hyɛ mu',
-                incidents_header: 'Bɔ Akwanhyia ho amanneɛ',
-                incidents_type: 'Akwanhyia su',
-                incidents_title: 'Akwanhyia Nkyerɛwee',
-                incidents_description: 'Nkyerɛkyerɛmu',
-                incidents_report_button: 'Bɔ amanneɛ',
-                public_title: 'NSA Ahwehwɛfoɔ Portal',
-                public_subtitle: 'Hwehwɛ yɛn nneɛma ne wo nnoɔma a wɔahyehyɛ.',
-                public_user_id: 'Onipa Nkyerɛwee',
-                public_sign_in: 'Kɔ Adwuma mu',
-                public_marketplace: 'Tɔnbea',
-                public_track_order: 'Hwehwɛ wo Tɔn',
-                public_traceability: 'Mmuada',
-                marketplace_products: 'Nneɛma a ɛwɔ hɔ',
-                marketplace_birds: 'Nkɔtɔn',
-                marketplace_eggs: 'Nkoko-kesua',
-                order_form_header: 'Fa wo nnoɔma hyɛ hɔ',
-                order_name: 'Wo din',
-                order_email: 'Email',
-                order_product: 'Nnoɔma',
-                order_quantity: 'Dodoɔ',
-                order_submit: 'Fa Tɔn hyɛ mu',
-                order_tracking_header: 'Hwehwɛ wo Tɔn',
-                order_tracking_prompt: 'Fa wo Tɔn Nkyerɛwee hyɛ mu.',
-                order_tracking_id: 'Tɔn Nkyerɛwee',
-                order_tracking_button: 'Hwehwɛ Tɔn',
-                traceability_header: 'Hwehwɛ Mmuada',
-                traceability_prompt: 'Fa nnoɔma Batch ID hyɛ mu.',
-                traceability_id: 'Batch ID',
-                traceability_button: 'Bɔ amanneɛ',
-                modal_ok: 'Yoo'
-            },
-            'ee': { // Ewe
-                login_title: 'NSA Ecosystem',
-                login_subtitle: 'Gbɔ kpo wò Portal.',
-                login_email: 'Email',
-                login_password: 'Password',
-                login_button: 'Gbɔ kpo',
-                login_public_prompt: 'Ðe yeye nu kple amegbetɔ alo wofɔna?',
-                login_public_button: 'Wɔtɔ ŋutsu kple amegbetɔ',
-                admin_title: 'NSA Adzɔdzi Dashboard',
-                admin_subtitle: 'Mɔɖaŋu kple nunɔamesi gbɔŋu.',
-                admin_user_id: 'Amegbetɔ ID',
-                admin_sign_out: 'Dzi',
-                admin_overview: 'Nunɔamesi',
-                admin_inventory: 'Nudɔwo',
-                admin_sales: 'Dzadzra',
-                admin_incidents: 'Nukunu',
-                admin_traceability: 'Mɔzɔ',
-                admin_training: 'Hehe',
-                admin_regulator: 'Ɖɔɖɔɖa',
-                staff_title: 'Dɔwɔla ƒe App',
-                staff_subtitle: 'Dzra nuwo gbɔŋu.',
-                staff_user_id: 'Amegbetɔ ID',
-                staff_sign_out: 'Dzi',
-                staff_inventory: 'Nudɔwo',
-                staff_sales: 'Dzadzra',
-                staff_incidents: 'Nukunu',
-                inventory_header: 'Dzra Nuwo ɖi',
-                inventory_coop: 'Coop ID',
-                inventory_item_type: 'Nudɔ wɔɖa',
-                inventory_item_name: 'Nudɔ ŋkɔ',
-                inventory_quantity: 'Hlɔŋ',
-                inventory_notes: 'Nuwo ƒe nya',
-                inventory_log_button: 'Dzra Nuwo ɖi',
-                sales_header: 'Dzra Nuwo ɖi',
-                sales_item: 'Nudɔ aɖe',
-                sales_quantity: 'Hlɔŋ',
-                sales_revenue: 'Nuwo ƒe sika (GHS)',
-                sales_notes: 'Nuwo ƒe dzadzra nyawo',
-                sales_log_button: 'Dzra Nuwo ɖi',
-                incidents_header: 'Nuɖeɖa',
-                incidents_type: 'Nuɖeɖa wɔɖa',
-                incidents_title: 'Nuɖeɖa ŋkɔ',
-                incidents_description: 'Nukunu ƒe nyawo',
-                incidents_report_button: 'Nuɖeɖa',
-                public_title: 'NSA Dzadzra Portal',
-                public_subtitle: 'Hlɔ nuwo kple wò dzadzra.',
-                public_user_id: 'Amegbetɔ ID',
-                public_sign_in: 'Gbɔ Kpo Dɔwɔla',
-                public_marketplace: 'Dzadzra',
-                public_track_order: 'Dɔdzra',
-                public_traceability: 'Mɔzɔ',
-                marketplace_products: 'Nuwo',
-                marketplace_birds: 'Xeviwo',
-                marketplace_eggs: 'Dzidzɔwo',
-                order_form_header: 'Dɔdzra',
-                order_name: 'Wò ŋkɔ',
-                order_email: 'Email',
-                order_product: 'Nuwo',
-                order_quantity: 'Hlɔŋ',
-                order_submit: 'Dɔdzra',
-                order_tracking_header: 'Dɔdzra',
-                order_tracking_prompt: 'Dɔdzra ID',
-                order_tracking_id: 'Dɔdzra ID',
-                order_tracking_button: 'Dɔdzra',
-                traceability_header: 'Mɔzɔ',
-                traceability_prompt: 'Batch ID',
-                traceability_id: 'Batch ID',
-                traceability_button: 'Mɔzɔ',
-                modal_ok: 'Mɔzɔ'
-            },
-            'ha': { // Hausa
-                login_title: 'NSA Ecosystem',
-                login_subtitle: 'Shiga shafin ka.',
-                login_email: 'Email',
-                login_password: 'Password',
-                login_button: 'Shiga',
-                login_public_prompt: 'Shin kai abokin ciniki ne ko mai bincike?',
-                login_public_button: 'Shiga Shafin Jama\'a',
-                admin_title: 'NSA Admin Dashboard',
-                admin_subtitle: 'Bincike da kulawa a ainihin lokaci.',
-                admin_user_id: 'Lambar Mai Amfani',
-                admin_sign_out: 'Fita',
-                admin_overview: 'Bincike',
-                admin_inventory: 'Abubuwa',
-                admin_sales: 'Sayarwa',
-                admin_incidents: 'Hatsarori',
-                admin_traceability: 'Bibiya',
-                admin_training: 'Horaswa',
-                admin_regulator: 'Mai Gudanarwa',
-                staff_title: 'Shafin Ma\'aikata',
-                staff_subtitle: 'Yi rikodin bayanai a ainihin lokaci.',
-                staff_user_id: 'Lambar Mai Amfani',
-                staff_sign_out: 'Fita',
-                staff_inventory: 'Abubuwa',
-                staff_sales: 'Sayarwa',
-                staff_incidents: 'Hatsarori',
-                inventory_header: 'Yi Rikodin Isarwa',
-                inventory_coop: 'Coop ID',
-                inventory_item_type: 'Nau\'in abu',
-                inventory_item_name: 'Sunan abu',
-                inventory_quantity: 'Adadin',
-                inventory_notes: 'Bayanan isarwa',
-                inventory_log_button: 'Yi Rikodin',
-                sales_header: 'Kula da Sayarwa',
-                sales_item: 'Abu da aka sayar',
-                sales_quantity: 'Adadin da aka sayar',
-                sales_revenue: 'Jimillar kudin shiga (GHS)',
-                sales_notes: 'Bayanan sayarwa',
-                sales_log_button: 'Yi Rikodi',
-                incidents_header: 'Bayar da Rahoton Hatsari',
-                incidents_type: 'Nau\'in Hatsari',
-                incidents_title: 'Take',
-                incidents_description: 'Bayanin hatsari',
-                incidents_report_button: 'Bayar da Rahoto',
-                public_title: 'NSA Shafin Jama\'a',
-                public_subtitle: 'Bincika kayayyakin mu da kuma odar ku.',
-                public_user_id: 'Lambar Mai Amfani',
-                public_sign_in: 'Shiga Ciki',
-                public_marketplace: 'Kasuwanci',
-                public_track_order: 'Kula da Oda',
-                public_traceability: 'Bibiya',
-                marketplace_products: 'Kayayyakin da Akwai',
-                marketplace_birds: 'Dabbobi Masu Raye',
-                marketplace_eggs: 'Kwai masu sabo',
-                order_form_header: 'Sanya Oda',
-                order_name: 'Sunan ka',
-                order_email: 'Email',
-                order_product: 'Kaya',
-                order_quantity: 'Adadin',
-                order_submit: 'Aika Odar',
-                order_tracking_header: 'Kula da Oda',
-                order_tracking_prompt: 'Sanya lambar odar ku.',
-                order_tracking_id: 'Lambar Oda',
-                order_tracking_button: 'Kula da Oda',
-                traceability_header: 'Bibiya',
-                traceability_prompt: 'Sanya Batch ID.',
-                traceability_id: 'Batch ID',
-                traceability_button: 'Bincika',
-                modal_ok: 'Ok'
-            }
-        };
-
-        let currentLang = 'en';
-
-        function updateUI() {
-            const elements = document.querySelectorAll('[data-lang-key]');
-            elements.forEach(el => {
-                const key = el.getAttribute('data-lang-key');
-                if (translations[currentLang][key]) {
-                    el.textContent = translations[currentLang][key];
-                }
-            });
-            // Update placeholders and titles
-            document.getElementById('email').placeholder = translations[currentLang].login_email;
-            document.getElementById('password').placeholder = translations[currentLang].login_password;
-            document.title = translations[currentLang].public_title;
-        }
-
-        // --- Page Navigation Logic ---
+        // --- UI & State Management ---
         const loginPage = document.getElementById('login-page');
         const adminPage = document.getElementById('admin-page');
         const staffPage = document.getElementById('staff-page');
         const publicPage = document.getElementById('public-page');
 
         function showPage(pageName) {
+            // Hide all pages first
             loginPage.classList.add('hidden');
             adminPage.classList.add('hidden');
             staffPage.classList.add('hidden');
             publicPage.classList.add('hidden');
             
+            // Show only the requested page
             if (pageName === 'login') {
                 loginPage.classList.remove('hidden');
             } else if (pageName === 'admin') {
@@ -1162,278 +846,66 @@
             } else if (pageName === 'public') {
                 publicPage.classList.remove('hidden');
             }
-            updateUI();
         }
-        
-        // Listen for user to choose the public portal, then sign in anonymously
-        document.getElementById('show-public-portal').onclick = () => {
-            firebase.auth().signInAnonymously().then((result) => {
-                showPage('public');
-            }).catch(error => {
-                console.error('Anonymous sign-in failed:', error);
-                showModal('Authentication Failed', 'Could not sign in to the public portal.');
-            });
-        };
-        document.getElementById('show-login-portal').onclick = () => {
-            firebase.auth().signOut().then(() => {
-                showPage('login');
-            }).catch((error) => {
-                console.error("Sign out failed: ", error);
-                showPage('login');
-            });
-        };
-        
+
         // --- Authentication & Redirection ---
-        const loginForm = document.getElementById('login-form');
-        loginForm.addEventListener('submit', async (e) => {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (user.isAnonymous) {
+                    document.getElementById('customer-user-id').textContent = user.uid;
+                    showPage('public');
+                } else if (user.email === 'admin@nsa.com') {
+                    document.getElementById('admin-user-id').textContent = user.uid;
+                    showPage('admin');
+                } else if (user.email === 'staff@nsa.com') {
+                    document.getElementById('staff-user-id').textContent = user.uid;
+                    showPage('staff');
+                } else {
+                    signOut(auth);
+                    showModal('Access Denied', 'Your account does not have access to an internal portal.');
+                    showPage('login');
+                }
+            } else {
+                showPage('login');
+            }
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             try {
-                // This will trigger the onAuthStateChanged listener to handle redirection
-                await firebase.auth().signInWithEmailAndPassword(email, password);
+                await signInWithEmailAndPassword(auth, email, password);
             } catch (error) {
                 console.error("Login failed:", error);
                 showModal('Login Failed', 'Invalid email or password. Please try again.');
             }
         });
 
-        // The central state listener for all page redirection
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                if (user.isAnonymous) {
-                    const customerUserIdSpan = document.getElementById('customer-user-id');
-                    if (customerUserIdSpan) {
-                        customerUserIdSpan.textContent = user.uid;
-                    }
-                    if (publicPage.classList.contains('hidden') && !loginPage.classList.contains('hidden')) {
-                        // Only auto-redirect to public if we are on the login page
-                        // and not on another authenticated page already
-                        showPage('public');
-                    }
-                } else {
-                    const userEmail = user.email;
-                    if (userEmail === 'admin@nsa.com') {
-                        const adminUserIdSpan = document.getElementById('admin-user-id');
-                        if (adminUserIdSpan) {
-                            adminUserIdSpan.textContent = user.uid;
-                        }
-                        showPage('admin');
-                    } else if (userEmail === 'staff@nsa.com') {
-                        const staffUserIdSpan = document.getElementById('staff-user-id');
-                        if (staffUserIdSpan) {
-                            staffUserIdSpan.textContent = user.uid;
-                        }
-                        showPage('staff');
-                    } else {
-                        firebase.auth().signOut();
-                        showModal('Access Denied', 'Your account does not have access to an internal portal.');
-                        showPage('login');
-                    }
-                }
-            } else {
-                // Only show login page if no user is signed in at all
-                showPage('login');
-            }
-        });
-        
+        document.getElementById('show-public-portal').onclick = () => {
+            signInAnonymously(auth).then(() => {
+                // onAuthStateChanged will handle the rest
+            }).catch(error => {
+                console.error('Anonymous sign-in failed:', error);
+                showModal('Authentication Failed', 'Could not sign in to the public portal.');
+            });
+        };
+
+        document.getElementById('admin-sign-out').onclick = () => signOut(auth);
+        document.getElementById('staff-sign-out').onclick = () => signOut(auth);
+        document.getElementById('show-login-portal').onclick = () => signOut(auth);
+
         // --- Admin Dashboard Logic ---
-        const adminOverviewTab = document.getElementById('admin-overview-tab');
-        const adminInventoryTab = document.getElementById('admin-inventory-tab');
-        const adminSalesTab = document.getElementById('admin-sales-tab');
-        const adminIncidentsTab = document.getElementById('admin-incidents-tab');
-        const adminTraceabilityTab = document.getElementById('admin-traceability-tab');
-        const adminTrainingTab = document.getElementById('admin-training-tab');
-        const adminRegulatorTab = document.getElementById('admin-regulator-tab');
-        const adminWarehouseTab = document.getElementById('admin-warehouse-tab');
-        const adminAssetsTab = document.getElementById('admin-assets-tab');
-        const adminReportsTab = document.getElementById('admin-reports-tab');
-        const adminTasksTab = document.getElementById('admin-tasks-tab');
-        const adminOrdersTab = document.getElementById('admin-orders-tab');
-        const adminBLETrackingTab = document.getElementById('admin-ble-tracking-tab');
+        const adminTabs = ['overview', 'inventory', 'sales', 'incidents', 'traceability', 'training', 'regulator', 'warehouse', 'assets', 'reports', 'tasks', 'orders', 'ble-tracking'];
+        adminTabs.forEach(tab => {
+            document.getElementById(`admin-${tab}-tab`).onclick = () => {
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`admin-${tab}-tab`).classList.add('active');
+                document.getElementById(`admin-${tab}-panel`).classList.remove('hidden');
+            };
+        });
 
-        const adminOverviewPanel = document.getElementById('admin-overview-panel');
-        const adminInventoryPanel = document.getElementById('admin-inventory-panel');
-        const adminSalesPanel = document.getElementById('admin-sales-panel');
-        const adminIncidentsPanel = document.getElementById('admin-incidents-panel');
-        const adminTraceabilityPanel = document.getElementById('admin-traceability-panel');
-        const adminTrainingPanel = document.getElementById('admin-training-panel');
-        const adminRegulatorPanel = document.getElementById('admin-regulator-panel');
-        const adminWarehousePanel = document.getElementById('admin-warehouse-panel');
-        const adminAssetsPanel = document.getElementById('admin-assets-panel');
-        const adminReportsPanel = document.getElementById('admin-reports-panel');
-        const adminTasksPanel = document.getElementById('admin-tasks-panel');
-        const adminOrdersPanel = document.getElementById('admin-orders-panel');
-        const adminBLETrackingPanel = document.getElementById('admin-ble-tracking-panel');
-        
-        function switchAdminTab(tab) {
-            adminOverviewTab.classList.remove('active');
-            adminInventoryTab.classList.remove('active');
-            adminSalesTab.classList.remove('active');
-            adminIncidentsTab.classList.remove('active');
-            adminTraceabilityTab.classList.remove('active');
-            adminTrainingTab.classList.remove('active');
-            adminRegulatorTab.classList.remove('active');
-            adminWarehouseTab.classList.remove('active');
-            adminAssetsTab.classList.remove('active');
-            adminReportsTab.classList.remove('active');
-            adminTasksTab.classList.remove('active');
-            adminOrdersTab.classList.remove('active');
-            adminBLETrackingTab.classList.remove('active');
-
-            adminOverviewPanel.classList.add('hidden');
-            adminInventoryPanel.classList.add('hidden');
-            adminSalesPanel.classList.add('hidden');
-            adminIncidentsPanel.classList.add('hidden');
-            adminTraceabilityPanel.classList.add('hidden');
-            adminTrainingPanel.classList.add('hidden');
-            adminRegulatorPanel.classList.add('hidden');
-            adminWarehousePanel.classList.add('hidden');
-            adminAssetsPanel.classList.add('hidden');
-            adminReportsPanel.classList.add('hidden');
-            adminTasksPanel.classList.add('hidden');
-            adminOrdersPanel.classList.add('hidden');
-            adminBLETrackingPanel.classList.add('hidden');
-            
-            if (tab === 'overview') {
-                adminOverviewTab.classList.add('active');
-                adminOverviewPanel.classList.remove('hidden');
-            } else if (tab === 'inventory') {
-                adminInventoryTab.classList.add('active');
-                adminInventoryPanel.classList.remove('hidden');
-            } else if (tab === 'sales') {
-                adminSalesTab.classList.add('active');
-                adminSalesPanel.classList.remove('hidden');
-            } else if (tab === 'incidents') {
-                adminIncidentsTab.classList.add('active');
-                adminIncidentsPanel.classList.remove('hidden');
-            } else if (tab === 'traceability') {
-                adminTraceabilityTab.classList.add('active');
-                adminTraceabilityPanel.classList.remove('hidden');
-            } else if (tab === 'training') {
-                adminTrainingTab.classList.add('active');
-                adminTrainingPanel.classList.remove('hidden');
-            } else if (tab === 'regulator') {
-                adminRegulatorTab.classList.add('active');
-                adminRegulatorPanel.classList.remove('hidden');
-            } else if (tab === 'warehouse') {
-                adminWarehouseTab.classList.add('active');
-                adminWarehousePanel.classList.remove('hidden');
-            } else if (tab === 'assets') {
-                adminAssetsTab.classList.add('active');
-                adminAssetsPanel.classList.remove('hidden');
-            } else if (tab === 'reports') {
-                adminReportsTab.classList.add('active');
-                adminReportsPanel.classList.remove('hidden');
-            } else if (tab === 'tasks') {
-                adminTasksTab.classList.add('active');
-                adminTasksPanel.classList.remove('hidden');
-            } else if (tab === 'orders') {
-                adminOrdersTab.classList.add('active');
-                adminOrdersPanel.classList.remove('hidden');
-            } else if (tab === 'ble-tracking') {
-                adminBLETrackingTab.classList.add('active');
-                adminBLETrackingPanel.classList.remove('hidden');
-            }
-        }
-        adminOverviewTab.onclick = () => switchAdminTab('overview');
-        adminInventoryTab.onclick = () => switchAdminTab('inventory');
-        adminSalesTab.onclick = () => switchAdminTab('sales');
-        adminIncidentsTab.onclick = () => switchAdminTab('incidents');
-        adminTraceabilityTab.onclick = () => switchAdminTab('traceability');
-        adminTrainingTab.onclick = () => switchAdminTab('training');
-        adminRegulatorTab.onclick = () => switchAdminTab('regulator');
-        adminWarehouseTab.onclick = () => switchAdminTab('warehouse');
-        adminAssetsTab.onclick = () => switchAdminTab('assets');
-        adminReportsTab.onclick = () => switchAdminTab('reports');
-        adminTasksTab.onclick = () => switchAdminTab('tasks');
-        adminOrdersTab.onclick = () => switchAdminTab('orders');
-        adminBLETrackingTab.onclick = () => switchAdminTab('ble-tracking');
-        
-        // Admin render functions
-        const renderAdminInventory = (item) => `
-            <div class="list-item">
-                <span class="text-sm font-medium text-gray-700">${item.itemName} (${item.itemType})</span>
-                <span class="text-gray-500 text-sm">${item.quantity} units</span>
-            </div>
-        `;
-        const renderAdminSale = (item) => `
-            <div class="list-item">
-                <span class="text-sm font-medium text-gray-700">${item.saleItem}</span>
-                <span class="text-emerald-600 font-bold text-sm">GHS ${item.salePrice.toFixed(2)}</span>
-            </div>
-        `;
-        const renderAdminIncident = (item) => {
-            const statusColor = item.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
-            return `
-            <div class="list-item flex-col items-start space-y-1">
-                <div class="flex justify-between w-full">
-                    <span class="text-sm font-medium text-gray-700">${item.incidentTitle}</span>
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${item.status || 'Pending'}</span>
-                </div>
-                <p class="text-gray-500 text-xs">${item.incidentNotes}</p>
-            </div>
-            `;
-        };
-        
-        const renderAdminTask = (task) => {
-            const statusColor = task.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
-            return `
-            <div class="list-item flex-col items-start space-y-1">
-                <div class="flex justify-between w-full">
-                    <span class="text-sm font-medium text-gray-700">${task.title}</span>
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${task.status || 'Assigned'}</span>
-                </div>
-                <p class="text-gray-500 text-xs">${task.description}</p>
-                <p class="text-xs text-gray-400">Assigned to: ${task.assignedTo}</p>
-            </div>
-            `;
-        };
-        
-        const renderAdminOrder = (order) => {
-            const statusColor = order.status === 'Delivered' ? 'bg-green-100 text-green-700' : (order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700');
-            return `
-            <div class="dashboard-card flex flex-col items-start">
-                <div class="flex justify-between w-full">
-                    <span class="text-lg font-bold text-gray-800">Order ID: ${order.id}</span>
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${order.status}</span>
-                </div>
-                <p class="text-sm text-gray-500 mt-1">Customer: ${order.customerName} (${order.customerEmail})</p>
-                <p class="text-sm text-gray-500">Product: ${order.product} (${order.quantity})</p>
-                <p class="text-sm text-gray-500">Payment: ${order.paymentMethod}</p>
-                <div class="mt-4 w-full">
-                    <label for="status-update-${order.id}" class="block text-sm font-medium text-gray-700 mb-2">Update Status</label>
-                    <select id="status-update-${order.id}" class="w-full">
-                        <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                        <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
-                        <option value="Out for Delivery" ${order.status === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
-                        <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                    </select>
-                    <button onclick="updateOrderStatus('${order.id}')" class="gradient-button mt-2 w-full text-sm py-2">Update</button>
-                </div>
-            </div>
-            `;
-        };
-        window.updateOrderStatus = async (orderId) => {
-            const selectElement = document.getElementById(`status-update-${orderId}`);
-            const newStatus = selectElement.value;
-            const orderRef = db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId);
-            try {
-                const docSnap = await orderRef.get();
-                const currentHistory = docSnap.data().deliveryHistory || [];
-                const newHistory = [...currentHistory, { status: newStatus, timestamp: firebase.firestore.FieldValue.serverTimestamp() }];
-                await orderRef.update({
-                    status: newStatus,
-                    deliveryHistory: newHistory
-                });
-                showModal('Success!', `Order ${orderId} status updated to ${newStatus}.`);
-            } catch (error) {
-                console.error("Error updating order status:", error);
-                showModal('Error', 'Failed to update order status. Please try again.');
-            }
-        };
-
-        // Global variables to hold report data
         let salesData = [];
         let incidentsData = [];
         let deliveriesData = [];
@@ -1442,222 +914,176 @@
             const mortalityCount = incidentsData.filter(i => i.incidentType === 'mortality').length;
             const mortalityTrend = mortalityCount > 5 ? 'High mortality detected. Immediate action required.' : 'Mortality is within normal range.';
             const totalFeedQuantity = deliveriesData.filter(i => i.itemType === 'feed').reduce((sum, item) => sum + item.quantity, 0);
-            const feedForecast = `Total feed logged: ${totalFeedQuantity} units. Forecast pending.`
+            const feedForecast = `Total feed logged: ${totalFeedQuantity} units. Forecast pending.`;
             const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.salePrice || 0), 0);
             
-            // Update Overview panel
             document.getElementById('total-revenue').textContent = `GHS ${totalRevenue.toFixed(2)}`;
             document.getElementById('total-incidents').textContent = incidentsData.length;
             document.getElementById('total-inventory').textContent = deliveriesData.length;
             document.getElementById('mortality-trend').textContent = mortalityTrend;
             document.getElementById('feed-forecast').textContent = feedForecast;
-
-            // Update Reports panel
+            
             document.getElementById('report-total-revenue').textContent = `GHS ${totalRevenue.toFixed(2)}`;
             document.getElementById('report-total-incidents').textContent = incidentsData.length;
             document.getElementById('report-total-deliveries').textContent = deliveriesData.length;
         }
 
-        // Admin Assets Logic
-        const addAssetForm = document.getElementById('add-asset-form');
-        const adminAssetList = document.getElementById('admin-asset-list');
-        addAssetForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById('asset-name').value,
-                type: document.getElementById('asset-type').value,
-                assignedTo: document.getElementById('asset-assigned-to').value,
-                status: 'Available',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (!data.name || !data.type) {
-                showModal('Input Required', 'Please fill in all required fields.');
-                return;
-            }
-            try {
-                await db.collection(`artifacts/${appId}/public/data/assets`).add(data);
-                showModal('Success!', 'Asset added successfully.');
-                addAssetForm.reset();
-            } catch (error) {
-                console.error("Error adding asset: ", error);
-                showModal('Error', 'Failed to add asset. Please check the console.');
-            }
-        };
+        function renderAdminList(items, containerId, renderer) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = items.length ? items.map(item => renderer(item)).join('') : `<p class="text-center text-gray-500">No data found.</p>`;
+        }
         
-        // Admin Tasks Logic
-        const assignTaskForm = document.getElementById('assign-task-form');
-        const adminTaskList = document.getElementById('admin-task-list');
-        assignTaskForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const data = {
-                title: document.getElementById('task-title').value,
-                description: document.getElementById('task-description').value,
-                assignedTo: document.getElementById('task-assigned-to').value,
-                dueDate: document.getElementById('task-due-date').value,
-                status: 'Assigned',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (!data.title || !data.assignedTo) {
-                showModal('Input Required', 'Please fill in all required fields.');
-                return;
-            }
-            try {
-                await db.collection(`artifacts/${appId}/public/data/work_orders`).add(data);
-                showModal('Success!', 'Task assigned successfully.');
-                assignTaskForm.reset();
-            } catch (error) {
-                console.error("Error assigning task: ", error);
-                showModal('Error', 'Failed to assign task. Please check the console.');
-            }
-        };
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/orders`), (snapshot) => {
+            salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderAdminList(salesData, 'admin-orders-list', renderAdminOrder);
+            updateAdminAnalytics();
+        });
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/incidents`), (snapshot) => {
+            incidentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderAdminList(incidentsData, 'admin-incidents-list', renderAdminIncident);
+            renderAdminList(incidentsData, 'regulator-incidents', renderAdminIncident);
+            updateAdminAnalytics();
+        });
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/warehouse_deliveries`), (snapshot) => {
+            deliveriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateAdminAnalytics();
+        });
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/sales`), (snapshot) => {
+            salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderAdminList(salesData, 'admin-sales-list', renderAdminSale);
+            updateAdminAnalytics();
+        });
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/inventory`), (snapshot) => {
+            const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderAdminList(logs, 'admin-inventory-list', renderAdminInventory);
+        });
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/batches`), (snapshot) => {
+            const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            document.getElementById('regulator-traceability').innerHTML = logs.map(log => `<div class="list-item flex-col items-start"><p class="font-medium">Batch ID: ${log.id}</p><p class="text-xs">Coop: ${log.coopId}, Birds: ${log.birdCount}</p></div>`).join('');
+        });
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/assets`), (snapshot) => {
+            const assets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            document.getElementById('admin-asset-list').innerHTML = assets.map(asset => `
+                <div class="list-item flex-col items-start">
+                    <span class="font-bold text-gray-800">${asset.name}</span>
+                    <span class="text-sm text-gray-500">Type: ${asset.type}</span>
+                    <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
+                </div>
+            `).join('');
+        });
+        
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/warehouse_stock`), (snapshot) => {
+            const stockItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const stockListHtml = stockItems.map(item => `
+                <div class="list-item">
+                    <span class="font-medium text-gray-700">${item.itemName} (${item.itemType})</span>
+                    <span class="text-teal-600 font-semibold">${item.quantity} units</span>
+                </div>
+            `).join('');
+            document.getElementById('warehouse-stock-list').innerHTML = stockListHtml || '<p class="text-gray-500">No stock items found.</p>';
+            const dispatchDropdown = document.getElementById('dispatch-item-name');
+            dispatchDropdown.innerHTML = '<option value="">-- Select an item --</option>' + stockItems.map(item => `<option value="${item.id}">${item.itemName} (${item.quantity} in stock)</option>`).join('');
+        });
+        
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/work_orders`), (snapshot) => {
+            const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderAdminList(tasks, 'admin-task-list', renderAdminTask);
+        });
+
+        onSnapshot(collection(db, `artifacts/${appId}/public/data/ble_logs`), (snapshot) => {
+            const bleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            document.getElementById('ble-tracking-list').innerHTML = bleLogs.map(log => `
+                <div class="list-item flex-col items-start">
+                    <span class="font-bold text-gray-800">${log.deviceName}</span>
+                    <span class="text-sm text-gray-500">User ID: ${log.userId}</span>
+                    <span class="text-xs text-gray-400">Lat/Lng: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}</span>
+                    <span class="text-xs text-gray-400">Timestamp: ${log.timestamp ? new Date(log.timestamp.toDate()).toLocaleString() : 'N/A'}</span>
+                </div>
+            `).join('');
+        });
 
         // --- Staff App Logic ---
-        const staffInventoryTab = document.getElementById('staff-inventory-tab');
-        const staffSalesTab = document.getElementById('staff-sales-tab');
-        const staffIncidentsTab = document.getElementById('staff-incidents-tab');
-        const staffAssetsTab = document.getElementById('staff-assets-tab');
-        const staffTasksTab = document.getElementById('staff-tasks-tab');
-        const staffInventoryPanel = document.getElementById('staff-inventory-panel');
-        const staffSalesPanel = document.getElementById('staff-sales-panel');
-        const staffIncidentsPanel = document.getElementById('staff-incidents-panel');
-        const staffAssetsPanel = document.getElementById('staff-assets-panel');
-        const staffTasksPanel = document.getElementById('staff-tasks-panel');
-        const inventoryForm = document.getElementById('inventory-form');
-        const salesForm = document.getElementById('sales-form');
-        const incidentsForm = document.getElementById('incidents-form');
-        const recentInventoryList = document.getElementById('recent-inventory-list');
-        const staffAssetList = document.getElementById('staff-asset-list');
-        const staffTaskList = document.getElementById('staff-task-list');
-        
-        function switchStaffTab(tab) {
-            staffInventoryTab.classList.remove('active');
-            staffSalesTab.classList.remove('active');
-            staffIncidentsTab.classList.remove('active');
-            staffAssetsTab.classList.remove('active');
-            staffTasksTab.classList.remove('active');
-            staffInventoryPanel.classList.add('hidden');
-            staffSalesPanel.classList.add('hidden');
-            staffIncidentsPanel.classList.add('hidden');
-            staffAssetsPanel.classList.add('hidden');
-            staffTasksPanel.classList.add('hidden');
-            if (tab === 'inventory') {
-                staffInventoryTab.classList.add('active');
-                staffInventoryPanel.classList.remove('hidden');
-            } else if (tab === 'sales') {
-                staffSalesTab.classList.add('active');
-                staffSalesPanel.classList.remove('hidden');
-            } else if (tab === 'incidents') {
-                staffIncidentsTab.classList.add('active');
-                staffIncidentsPanel.classList.remove('hidden');
-            } else if (tab === 'assets') {
-                staffAssetsTab.classList.add('active');
-                staffAssetsPanel.classList.remove('hidden');
-            } else if (tab === 'tasks') {
-                staffTasksTab.classList.add('active');
-                staffTasksPanel.classList.remove('hidden');
-            }
-        }
-        staffInventoryTab.onclick = () => switchStaffTab('inventory');
-        staffSalesTab.onclick = () => switchStaffTab('sales');
-        staffIncidentsTab.onclick = () => switchStaffTab('incidents');
-        staffAssetsTab.onclick = () => switchStaffTab('assets');
-        staffTasksTab.onclick = () => switchStaffTab('tasks');
-        
-        firebase.auth().onAuthStateChanged(user => {
+        const staffTabs = ['inventory', 'sales', 'incidents', 'assets', 'tasks'];
+        staffTabs.forEach(tab => {
+            document.getElementById(`staff-${tab}-tab`).onclick = () => {
+                document.querySelectorAll('#staff-page .tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('#staff-page .tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`staff-${tab}-tab`).classList.add('active');
+                document.getElementById(`staff-${tab}-panel`).classList.remove('hidden');
+            };
+        });
+
+        onAuthStateChanged(auth, user => {
             if (user && !user.isAnonymous) {
-                // Listen for changes to the user's private inventory logs
-                const inventoryRef = db.collection(`artifacts/${appId}/users/${user.uid}/inventory`);
-                inventoryRef.onSnapshot((snapshot) => {
-                    const logs = [];
-                    snapshot.forEach(doc => {
-                        logs.push({ id: doc.id, ...doc.data() });
-                    });
-                    renderRecentInventory(logs);
+                const inventoryRef = collection(db, `artifacts/${appId}/users/${user.uid}/inventory`);
+                onSnapshot(query(inventoryRef), (snapshot) => {
+                    const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderStaffList(logs, 'recent-inventory-list', log => `
+                        <div class="bg-gray-50 rounded-lg p-3 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                            <div>
+                                <p class="font-medium text-gray-800">${log.itemName} (${log.itemType})</p>
+                                <p class="text-sm text-gray-500">Coop ID: ${log.coopId}</p>
+                            </div>
+                            <p class="text-sm text-teal-600 font-semibold mt-2 sm:mt-0">${log.quantity} units</p>
+                        </div>
+                    `);
                 });
-                // Listen for assets assigned to this user
-                const assetsRef = db.collection(`artifacts/${appId}/public/data/assets`);
-                assetsRef.where('assignedTo', '==', user.uid).onSnapshot((snapshot) => {
-                    const assets = [];
-                    snapshot.forEach(doc => {
-                        assets.push({ id: doc.id, ...doc.data() });
-                    });
-                    renderStaffAssets(assets);
+                const assetsRef = collection(db, `artifacts/${appId}/public/data/assets`);
+                onSnapshot(query(assetsRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                    const assets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderStaffList(assets, 'staff-asset-list', asset => `
+                        <div class="dashboard-card flex flex-col items-start">
+                            <span class="text-lg font-bold text-gray-800">${asset.name}</span>
+                            <span class="text-sm text-gray-500 mt-1">Type: ${asset.type}</span>
+                            <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
+                        </div>
+                    `);
                 });
-                // Listen for tasks assigned to this user
-                const tasksRef = db.collection(`artifacts/${appId}/public/data/work_orders`);
-                tasksRef.where('assignedTo', '==', user.uid).onSnapshot((snapshot) => {
-                    const tasks = [];
-                    snapshot.forEach(doc => {
-                        tasks.push({ id: doc.id, ...doc.data() });
-                    });
-                    renderStaffTasks(tasks);
+                const tasksRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
+                onSnapshot(query(tasksRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                    const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderStaffList(tasks, 'staff-task-list', renderStaffTask);
                 });
             }
         });
-        
-        function renderRecentInventory(logs) {
-            if (logs.length === 0) {
-                recentInventoryList.innerHTML = '<p class="text-gray-500 text-center">No recent deliveries logged.</p>';
-            } else {
-                recentInventoryList.innerHTML = logs.map(log => `
-                    <div class="bg-gray-50 rounded-lg p-3 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                        <div>
-                            <p class="font-medium text-gray-800">${log.itemName} (${log.itemType})</p>
-                            <p class="text-sm text-gray-500">Coop ID: ${log.coopId}</p>
-                        </div>
-                        <p class="text-sm text-teal-600 font-semibold mt-2 sm:mt-0">${log.quantity} units</p>
+
+        function renderStaffList(items, containerId, renderer) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = items.length ? items.map(item => renderer(item)).join('') : `<p class="text-gray-500 text-center">No items found.</p>`;
+        }
+
+        const renderStaffTask = (task) => {
+            const statusColor = task.status === 'Completed' ? 'bg-green-500' : 'bg-blue-500';
+            return `
+                <div class="dashboard-card flex flex-col items-start">
+                    <div class="flex justify-between w-full">
+                        <span class="text-lg font-bold text-gray-800">${task.title}</span>
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${statusColor}">${task.status || 'Assigned'}</span>
                     </div>
-                `).join('');
-            }
-        }
-        
-        function renderStaffAssets(assets) {
-            if (assets.length === 0) {
-                staffAssetList.innerHTML = '<p class="text-gray-500 text-center">No assets assigned.</p>';
-            } else {
-                staffAssetList.innerHTML = assets.map(asset => `
-                    <div class="dashboard-card flex flex-col items-start">
-                        <span class="text-lg font-bold text-gray-800">${asset.name}</span>
-                        <span class="text-sm text-gray-500 mt-1">Type: ${asset.type}</span>
-                        <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
-                        <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
-                            </div>
-                `).join('');
-            }
-        }
-        
-        function renderStaffTasks(tasks) {
-            if (tasks.length === 0) {
-                staffTaskList.innerHTML = '<p class="text-gray-500 text-center">No tasks assigned.</p>';
-            } else {
-                staffTaskList.innerHTML = tasks.map(task => `
-                    <div class="dashboard-card flex flex-col items-start">
-                        <div class="flex justify-between w-full">
-                            <span class="text-lg font-bold text-gray-800">${task.title}</span>
-                            <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${task.status === 'Completed' ? 'bg-green-500' : 'bg-blue-500'}">${task.status || 'Assigned'}</span>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-1">${task.description}</p>
-                        <p class="text-xs text-gray-400 mt-1">Due: ${task.dueDate}</p>
-                        ${task.status !== 'Completed' ? `<button onclick="updateTaskStatus('${task.id}', 'Completed')" class="gradient-button mt-4 w-full text-sm py-2">Mark as Complete</button>` : ''}
-                    </div>
-                `).join('');
-            }
-        }
-        window.updateTaskStatus = async (taskId, newStatus) => {
-             const taskRef = db.collection(`artifacts/${appId}/public/data/work_orders`).doc(taskId);
-             try {
-                 await taskRef.update({
-                     status: newStatus,
-                     completedAt: firebase.firestore.FieldValue.serverTimestamp()
-                 });
-                 showModal('Success!', 'Task status updated successfully.');
-             } catch (error) {
-                 console.error("Error updating task status:", error);
-                 showModal('Error', 'Failed to update task status. Please try again.');
-             }
+                    <p class="text-sm text-gray-500 mt-1">${task.description}</p>
+                    <p class="text-xs text-gray-400 mt-1">Due: ${task.dueDate}</p>
+                    ${task.status !== 'Completed' ? `<button onclick="updateTaskStatus('${task.id}', 'Completed')" class="gradient-button mt-4 w-full text-sm py-2">Mark as Complete</button>` : ''}
+                </div>
+            `;
         };
 
-        inventoryForm.onsubmit = async (e) => {
+        window.updateTaskStatus = async (taskId, newStatus) => {
+            const taskRef = doc(db, `artifacts/${appId}/public/data/work_orders`, taskId);
+            try {
+                await updateDoc(taskRef, {
+                    status: newStatus,
+                    completedAt: serverTimestamp()
+                });
+                showModal('Success!', 'Task status updated successfully.');
+            } catch (error) {
+                console.error("Error updating task status:", error);
+                showModal('Error', 'Failed to update task status. Please try again.');
+            }
+        };
+
+        document.getElementById('inventory-form').onsubmit = async (e) => {
             e.preventDefault();
             const data = {
                 coopId: document.getElementById('coop-id').value,
@@ -1665,69 +1091,56 @@
                 itemName: document.getElementById('itemName').value,
                 quantity: parseInt(document.getElementById('quantity').value, 10),
                 deliveryNotes: document.getElementById('deliveryNotes').value,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: firebase.auth().currentUser.uid
+                timestamp: serverTimestamp(),
+                userId: auth.currentUser.uid
             };
-            if (!data.coopId || !data.itemName || !data.quantity) {
-                showModal('Input Required', 'Please fill in all required fields.');
-                return;
-            }
             try {
-                await db.collection(`artifacts/${appId}/users/${firebase.auth().currentUser.uid}/inventory`).add(data);
+                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/inventory`), data);
                 showModal('Success!', 'Inventory logged successfully.');
-                inventoryForm.reset();
+                document.getElementById('inventory-form').reset();
             } catch (error) {
                 console.error("Error logging inventory: ", error);
                 showModal('Error', 'Failed to log inventory. Please check the console.');
             }
         };
 
-        salesForm.onsubmit = async (e) => {
+        document.getElementById('sales-form').onsubmit = async (e) => {
             e.preventDefault();
             const data = {
                 saleItem: document.getElementById('saleItem').value,
                 saleQuantity: parseInt(document.getElementById('saleQuantity').value, 10),
                 salePrice: parseFloat(document.getElementById('salePrice').value),
                 saleNotes: document.getElementById('saleNotes').value,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: firebase.auth().currentUser.uid
+                timestamp: serverTimestamp(),
+                userId: auth.currentUser.uid
             };
-            if (!data.saleQuantity || !data.salePrice) {
-                showModal('Input Required', 'Please fill in all required fields.');
-                return;
-            }
             try {
-                await db.collection(`artifacts/${appId}/users/${firebase.auth().currentUser.uid}/sales`).add(data);
+                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/sales`), data);
                 showModal('Success!', 'Sales logged successfully.');
-                salesForm.reset();
+                document.getElementById('sales-form').reset();
             } catch (error) {
                 console.error("Error logging sales: ", error);
                 showModal('Error', 'Failed to log sales. Please check the console.');
             }
         };
 
-        incidentsForm.onsubmit = async (e) => {
+        document.getElementById('incidents-form').onsubmit = async (e) => {
             e.preventDefault();
             const photoFile = document.getElementById('incidentPhoto').files[0];
             const photoUrl = photoFile ? `https://storage.googleapis.com/your-bucket/incidents/${Date.now()}_${photoFile.name}` : null;
-            
             const data = {
                 incidentType: document.getElementById('incidentType').value,
                 incidentTitle: document.getElementById('incidentTitle').value,
                 incidentNotes: document.getElementById('incidentNotes').value,
                 photoUrl: photoUrl,
                 status: 'Pending',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: firebase.auth().currentUser.uid
+                timestamp: serverTimestamp(),
+                userId: auth.currentUser.uid
             };
-            if (!data.incidentTitle || !data.incidentNotes) {
-                showModal('Input Required', 'Please fill in all required fields.');
-                return;
-            }
             try {
-                await db.collection(`artifacts/${appId}/users/${firebase.auth().currentUser.uid}/incidents`).add(data);
+                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/incidents`), data);
                 showModal('Success!', 'Incident reported successfully. Photo upload simulated.');
-                incidentsForm.reset();
+                document.getElementById('incidents-form').reset();
             } catch (error) {
                 console.error("Error reporting incident: ", error);
                 showModal('Error', 'Failed to report incident. Please check the console.');
@@ -1735,65 +1148,37 @@
         };
 
         // --- Public Portal Logic ---
-        const marketplaceTab = document.getElementById('marketplace-tab');
-        const orderTrackingTab = document.getElementById('order-tracking-tab');
-        const traceabilityTab = document.getElementById('traceability-tab');
-        const marketplacePanel = document.getElementById('marketplace-panel');
-        const orderTrackingPanel = document.getElementById('order-tracking-panel');
-        const traceabilityPanel = document.getElementById('traceability-panel');
-        const buyBirdsButton = document.getElementById('buy-birds');
-        const buyEggsButton = document.getElementById('buy-eggs');
-        const orderFormContainer = document.getElementById('order-form-container');
-        const orderForm = document.getElementById('order-form');
-        const productInput = document.getElementById('product');
-        const trackOrderButton = document.getElementById('track-order-button');
-        const orderIdInput = document.getElementById('order-id-input');
-        const trackingResult = document.getElementById('tracking-result');
-        const trackingError = document.getElementById('tracking-error');
+        document.getElementById('marketplace-tab').onclick = () => {
+            showPublicTab('marketplace');
+            document.getElementById('order-form-container').classList.add('hidden');
+        };
+        document.getElementById('order-tracking-tab').onclick = () => showPublicTab('order-tracking');
+        document.getElementById('traceability-tab').onclick = () => showPublicTab('traceability');
+
+        function showPublicTab(tab) {
+            document.querySelectorAll('#public-page .tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#public-page .tab-content').forEach(content => content.classList.add('hidden'));
+            document.getElementById(`public-${tab}-tab`).classList.add('active');
+            document.getElementById(`public-${tab}-panel`).classList.remove('hidden');
+        }
+
+        document.getElementById('buy-birds').onclick = () => {
+            document.getElementById('product').value = 'Birds';
+            document.getElementById('order-form-container').classList.remove('hidden');
+            document.getElementById('order-form-container').scrollIntoView({ behavior: 'smooth' });
+        };
+        document.getElementById('buy-eggs').onclick = () => {
+            document.getElementById('product').value = 'Eggs';
+            document.getElementById('order-form-container').classList.remove('hidden');
+            document.getElementById('order-form-container').scrollIntoView({ behavior: 'smooth' });
+        };
         
-        function switchPublicTab(tab) {
-            marketplaceTab.classList.remove('active');
-            orderTrackingTab.classList.remove('active');
-            traceabilityTab.classList.remove('active');
-            marketplacePanel.classList.add('hidden');
-            orderTrackingPanel.classList.add('hidden');
-            traceabilityPanel.classList.add('hidden');
-            if (tab === 'marketplace') {
-                marketplaceTab.classList.add('active');
-                marketplacePanel.classList.remove('hidden');
-            } else if (tab === 'order-tracking') {
-                orderTrackingTab.classList.add('active');
-                orderTrackingPanel.classList.remove('hidden');
-                trackingResult.classList.add('hidden');
-                trackingError.classList.add('hidden');
-                orderIdInput.value = '';
-            } else if (tab === 'traceability') {
-                traceabilityTab.classList.add('active');
-                traceabilityPanel.classList.remove('hidden');
-            }
-        }
-        marketplaceTab.onclick = () => {
-            switchPublicTab('marketplace');
-            orderFormContainer.classList.add('hidden');
-        }
-        orderTrackingTab.onclick = () => switchPublicTab('order-tracking');
-        traceabilityTab.onclick = () => switchPublicTab('traceability');
-        buyBirdsButton.onclick = () => {
-            productInput.value = 'Birds';
-            orderFormContainer.classList.remove('hidden');
-            orderFormContainer.scrollIntoView({ behavior: 'smooth' });
-        };
-        buyEggsButton.onclick = () => {
-            productInput.value = 'Eggs';
-            orderFormContainer.classList.remove('hidden');
-            orderFormContainer.scrollIntoView({ behavior: 'smooth' });
-        };
-        orderForm.onsubmit = async (e) => {
+        document.getElementById('order-form').onsubmit = async (e) => {
             e.preventDefault();
             const orderData = {
                 customerName: document.getElementById('customerName').value,
                 customerEmail: document.getElementById('customerEmail').value,
-                product: productInput.value,
+                product: document.getElementById('product').value,
                 quantity: parseInt(document.getElementById('quantity').value, 10),
                 paymentMethod: document.getElementById('paymentMethod').value,
                 status: 'Pending',
@@ -1801,27 +1186,29 @@
                 timestamp: new Date()
             };
             try {
-                const docRef = await db.collection(`artifacts/${appId}/public/data/orders`).add(orderData);
+                const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/orders`), orderData);
                 const orderId = docRef.id;
                 showModal('Order Submitted!', `Your order has been placed. Your Order ID is: <strong class="text-teal-600">${orderId}</strong>. Use this to track your order.`)
-                orderForm.reset();
-                orderFormContainer.classList.add('hidden');
+                document.getElementById('order-form').reset();
+                document.getElementById('order-form-container').classList.add('hidden');
             } catch (error) {
                 console.error("Error adding document: ", error);
                 showModal('Order Failed', 'There was an error submitting your order. Please try again.');
             }
         };
-        trackOrderButton.onclick = async () => {
-            const orderId = orderIdInput.value.trim();
+        
+        document.getElementById('track-order-button').onclick = async () => {
+            const orderId = document.getElementById('order-id-input').value.trim();
             if (!orderId) {
                 showModal('Input Required', 'Please enter your Order ID.');
                 return;
             }
-            trackingResult.classList.add('hidden');
-            trackingError.classList.add('hidden');
+            document.getElementById('tracking-result').classList.add('hidden');
+            document.getElementById('tracking-error').classList.add('hidden');
             try {
-                const docSnap = await db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId).get();
-                if (docSnap.exists) {
+                const docRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
                     const data = docSnap.data();
                     document.getElementById('result-order-id').textContent = orderId;
                     document.getElementById('result-product').textContent = data.product;
@@ -1844,15 +1231,15 @@
                     if (data.deliveryHistory && data.deliveryHistory.length > 0) {
                         data.deliveryHistory.forEach(step => {
                             const li = document.createElement('li');
-                            li.textContent = `${new Date(step.timestamp.toDate()).toLocaleString()}: ${step.status}`;
+                            li.textContent = `${step.timestamp.toDate().toLocaleString()}: ${step.status}`;
                             historyList.appendChild(li);
                         });
                     } else {
                         historyList.innerHTML = '<li>No delivery history available.</li>';
                     }
-                    trackingResult.classList.remove('hidden');
+                    document.getElementById('tracking-result').classList.remove('hidden');
                 } else {
-                    trackingError.classList.remove('hidden');
+                    document.getElementById('tracking-error').classList.remove('hidden');
                 }
             } catch (error) {
                 console.error("Error fetching document:", error);
@@ -1860,29 +1247,27 @@
             }
         };
 
-        // --- Traceability Logic (New) ---
-        const batchGeneratorForm = document.getElementById('batch-generator-form');
-        batchGeneratorForm.onsubmit = async (e) => {
+        // --- Traceability Logic ---
+        document.getElementById('batch-generator-form').onsubmit = async (e) => {
             e.preventDefault();
-            const formData = new FormData(batchGeneratorForm);
+            const formData = new FormData(document.getElementById('batch-generator-form'));
             const data = Object.fromEntries(formData.entries());
-            data.timestamp = firebase.firestore.FieldValue.serverTimestamp();
-            data.userId = firebase.auth().currentUser.uid;
+            data.timestamp = serverTimestamp();
+            data.userId = auth.currentUser.uid;
             
-            // Mock blockchain hash generation
-            const hashString = `${data.coopId}-${data.birdCount}-${data.feedType}-${data.timestamp}-${Math.random()}`;
+            const hashString = `${data.coopId}-${data.birdCount}-${data.feedType}-${new Date().toISOString()}-${Math.random()}`;
             data.blockchainHash = crypto.subtle ? 
                 await crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashString))
                 .then(buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('')) :
                 'simulated_hash_' + Math.random().toString(36).substring(2, 15);
             
             try {
-                const docRef = await db.collection(`artifacts/${appId}/public/data/batches`).add(data);
+                const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/batches`), data);
                 const batchId = docRef.id;
                 document.getElementById('generated-batch-id').textContent = batchId;
                 document.getElementById('generated-qr-code').classList.remove('hidden');
                 showModal('Batch Generated!', `A new batch has been logged. The Batch ID is: <strong class="text-teal-600">${batchId}</strong>. This ID is linked to the blockchain hash for traceability.`);
-                batchGeneratorForm.reset();
+                document.getElementById('batch-generator-form').reset();
             } catch (error) {
                 console.error("Error adding batch document: ", error);
                 showModal('Error', 'Failed to generate a new batch. Please check the console for details.');
@@ -1908,8 +1293,8 @@
             document.getElementById('validation-result').classList.add('hidden');
             document.getElementById('validation-error').classList.add('hidden');
             try {
-                const docSnap = await db.collection(`artifacts/${appId}/public/data/batches`).doc(batchId).get();
-                if (docSnap.exists) {
+                const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/batches`, batchId));
+                if (docSnap.exists()) {
                     const data = docSnap.data();
                     document.getElementById('result-batch-id').textContent = batchId;
                     document.getElementById('result-coop-id').textContent = data.coopId;
@@ -1934,200 +1319,40 @@
         const modalClose = document.getElementById('modal-close');
         function showModal(title, message) {
             modalTitle.textContent = title;
-            modalMessage.innerHTML = message; // Use innerHTML for strong tag
+            modalMessage.innerHTML = message;
             modal.style.display = 'flex';
         }
         modalClose.onclick = () => { modal.style.display = 'none'; };
-        
-        // --- Sign Out Logic ---
-        document.getElementById('admin-sign-out').onclick = () => {
-            firebase.auth().signOut().then(() => window.location.reload());
-        };
-        document.getElementById('staff-sign-out').onclick = () => {
-            firebase.auth().signOut().then(() => window.location.reload());
-        };
-        
-        // Anonymous sign-in for public pages on initial load
-        firebase.auth().onAuthStateChanged((user) => {
-            if (!user) {
-                firebase.auth().signInAnonymously().then(() => {
-                    console.log('Signed in anonymously for public access.');
-                }).catch(error => {
-                    console.error('Anonymous sign-in failed:', error);
-                });
-            }
-        });
-
-        // --- Live Data Listeners ---
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                // Admin dashboard listeners - get data for reports and analytics
-                if (user.email === 'admin@nsa.com') {
-                    db.collection(`artifacts/${appId}/public/data/orders`).onSnapshot((snapshot) => {
-                        salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        const ordersList = document.getElementById('admin-orders-list');
-                        ordersList.innerHTML = salesData.map(renderAdminOrder).join('');
-                        updateAdminAnalytics();
-                    });
-                    db.collection(`artifacts/${appId}/public/data/incidents`).onSnapshot((snapshot) => {
-                        incidentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        document.getElementById('admin-incidents-list').innerHTML = incidentsData.map(renderAdminIncident).join('');
-                        updateAdminAnalytics();
-                    });
-                    db.collection(`artifacts/${appId}/public/data/warehouse_deliveries`).onSnapshot((snapshot) => {
-                        deliveriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        updateAdminAnalytics();
-                    });
-                    db.collection(`artifacts/${appId}/public/data/sales`).onSnapshot((snapshot) => {
-                        salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        document.getElementById('admin-sales-list').innerHTML = salesData.map(renderAdminSale).join('');
-                        updateAdminAnalytics();
-                    });
-                     db.collection(`artifacts/${appId}/public/data/inventory`).onSnapshot((snapshot) => {
-                        const logs = [];
-                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
-                        document.getElementById('admin-inventory-list').innerHTML = logs.map(renderAdminInventory).join('');
-                    });
-                    
-                    // New Regulator Panel Listener (Reads all public data)
-                    db.collection(`artifacts/${appId}/public/data/incidents`).onSnapshot((snapshot) => {
-                        const logs = [];
-                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
-                        document.getElementById('regulator-incidents').innerHTML = logs.map(renderAdminIncident).join('');
-                    });
-                     db.collection(`artifacts/${appId}/public/data/batches`).onSnapshot((snapshot) => {
-                        const logs = [];
-                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
-                        document.getElementById('regulator-traceability').innerHTML = logs.map(log => `<div class="list-item flex-col items-start"><p class="font-medium">Batch ID: ${log.id}</p><p class="text-xs">Coop: ${log.coopId}, Birds: ${log.birdCount}</p></div>`).join('');
-                    });
-                     // Admin Assets Listener
-                    db.collection(`artifacts/${appId}/public/data/assets`).onSnapshot((snapshot) => {
-                        const assets = [];
-                        snapshot.forEach(doc => assets.push({ id: doc.id, ...doc.data() }));
-                        adminAssetList.innerHTML = assets.map(asset => `
-                            <div class="list-item flex-col items-start">
-                                <span class="font-bold text-gray-800">${asset.name}</span>
-                                <span class="text-sm text-gray-500">Type: ${asset.type}</span>
-                                <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
-                                <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
-                            </div>
-                        `).join('');
-                    });
-
-                    // New Warehouse Listeners
-                    const warehouseStockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`);
-                    warehouseStockRef.onSnapshot((snapshot) => {
-                        const stockItems = [];
-                        snapshot.forEach(doc => stockItems.push({ id: doc.id, ...doc.data() }));
-                        const stockListHtml = stockItems.map(item => `
-                            <div class="list-item">
-                                <span class="font-medium text-gray-700">${item.itemName} (${item.itemType})</span>
-                                <span class="text-teal-600 font-semibold">${item.quantity} units</span>
-                            </div>
-                        `).join('');
-                        document.getElementById('warehouse-stock-list').innerHTML = stockListHtml || '<p class="text-gray-500">No stock items found.</p>';
-
-                        // Populate dispatch dropdown with current stock
-                        const dispatchDropdown = document.getElementById('dispatch-item-name');
-                        dispatchDropdown.innerHTML = '<option value="">-- Select an item --</option>' + stockItems.map(item => `<option value="${item.id}">${item.itemName} (${item.quantity} in stock)</option>`).join('');
-                    });
-                    
-                    // Admin Tasks Listener
-                    const workOrdersRef = db.collection(`artifacts/${appId}/public/data/work_orders`);
-                    workOrdersRef.onSnapshot((snapshot) => {
-                         const tasks = [];
-                         snapshot.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
-                         adminTaskList.innerHTML = tasks.map(renderAdminTask).join('');
-                    });
-
-                    // BLE Tracking Listener (Simulated)
-                    db.collection(`artifacts/${appId}/public/data/ble_logs`).onSnapshot((snapshot) => {
-                        const bleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        document.getElementById('ble-tracking-list').innerHTML = bleLogs.map(log => `
-                            <div class="list-item flex-col items-start">
-                                <span class="font-bold text-gray-800">${log.deviceName}</span>
-                                <span class="text-sm text-gray-500">User ID: ${log.userId}</span>
-                                <span class="text-xs text-gray-400">Lat/Lng: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}</span>
-                                <span class="text-xs text-gray-400">Timestamp: ${log.timestamp.toDate().toLocaleString()}</span>
-                            </div>
-                        `).join('');
-                    });
-
-                } else if (user.email === 'staff@nsa.com') {
-                   // Listeners for Staff App
-                    const inventoryRef = db.collection(`artifacts/${appId}/users/${user.uid}/inventory`);
-                    inventoryRef.onSnapshot((snapshot) => {
-                        const logs = [];
-                        snapshot.forEach(doc => {
-                            logs.push({ id: doc.id, ...doc.data() });
-                        });
-                        renderRecentInventory(logs);
-                    });
-                    const assetsRef = db.collection(`artifacts/${appId}/public/data/assets`);
-                    assetsRef.where('assignedTo', '==', user.uid).onSnapshot((snapshot) => {
-                        const assets = [];
-                        snapshot.forEach(doc => {
-                            assets.push({ id: doc.id, ...doc.data() });
-                        });
-                        renderStaffAssets(assets);
-                    });
-                    const tasksRef = db.collection(`artifacts/${appId}/public/data/work_orders`);
-                    tasksRef.where('assignedTo', '==', user.uid).onSnapshot((snapshot) => {
-                        const tasks = [];
-                        snapshot.forEach(doc => {
-                            tasks.push({ id: doc.id, ...doc.data() });
-                        });
-                        renderStaffTasks(tasks);
-                    });
-                }
-            }
-        });
 
         // --- New Warehouse Forms Logic ---
-        const warehouseDeliveryForm = document.getElementById('warehouse-delivery-form');
-        warehouseDeliveryForm.onsubmit = async (e) => {
+        document.getElementById('warehouse-delivery-form').onsubmit = async (e) => {
             e.preventDefault();
             const data = {
                 itemName: document.getElementById('warehouse-item-name').value,
                 itemType: document.getElementById('warehouse-item-type').value,
                 quantity: parseInt(document.getElementById('warehouse-quantity').value, 10),
                 supplier: document.getElementById('warehouse-supplier').value,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                adminId: firebase.auth().currentUser.uid
+                timestamp: serverTimestamp(),
+                adminId: auth.currentUser.uid
             };
-            if (!data.itemName || !data.quantity) {
-                showModal('Input Required', 'Please fill in all required fields.');
-                return;
-            }
             try {
-                // Log the delivery
-                await db.collection(`artifacts/${appId}/public/data/warehouse_deliveries`).add(data);
-                // Update the central stock
-                const stockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`).doc(data.itemName);
-                const stockSnap = await stockRef.get();
-                if (stockSnap.exists) {
-                    await stockRef.update({
-                        quantity: stockSnap.data().quantity + data.quantity,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                await addDoc(collection(db, `artifacts/${appId}/public/data/warehouse_deliveries`), data);
+                const stockRef = doc(db, `artifacts/${appId}/public/data/warehouse_stock`, data.itemName);
+                const stockSnap = await getDoc(stockRef);
+                if (stockSnap.exists()) {
+                    await updateDoc(stockRef, { quantity: stockSnap.data().quantity + data.quantity, timestamp: serverTimestamp() });
                 } else {
-                    await stockRef.set({
-                        itemName: data.itemName,
-                        itemType: data.itemType,
-                        quantity: data.quantity,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    await setDoc(stockRef, { itemName: data.itemName, itemType: data.itemType, quantity: data.quantity, timestamp: serverTimestamp() });
                 }
                 showModal('Success!', 'Delivery logged and stock updated successfully.');
-                warehouseDeliveryForm.reset();
+                document.getElementById('warehouse-delivery-form').reset();
             } catch (error) {
                 console.error("Error logging delivery: ", error);
                 showModal('Error', 'Failed to log delivery. Please check the console.');
             }
         };
 
-        const dispatchForm = document.getElementById('dispatch-form');
-        dispatchForm.onsubmit = async (e) => {
+        document.getElementById('dispatch-form').onsubmit = async (e) => {
             e.preventDefault();
             const itemName = document.getElementById('dispatch-item-name').value;
             const quantity = parseInt(document.getElementById('dispatch-quantity').value, 10);
@@ -2138,43 +1363,19 @@
                 return;
             }
             try {
-                const stockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`).doc(itemName);
-                const stockSnap = await stockRef.get();
-                if (!stockSnap.exists || stockSnap.data().quantity < quantity) {
+                const stockRef = doc(db, `artifacts/${appId}/public/data/warehouse_stock`, itemName);
+                const stockSnap = await getDoc(stockRef);
+                if (!stockSnap.exists() || stockSnap.data().quantity < quantity) {
                     showModal('Dispatch Failed', 'Not enough stock available for this item.');
                     return;
                 }
-
-                // Decrement warehouse stock
-                await stockRef.update({
-                    quantity: stockSnap.data().quantity - quantity,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // Log the dispatch
-                const dispatchData = {
-                    itemName,
-                    quantity,
-                    staffUid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    adminId: firebase.auth().currentUser.uid
-                };
-                await db.collection(`artifacts/${appId}/public/data/dispatches`).add(dispatchData);
-
-                // Add to staff's private inventory
-                const staffInventoryRef = db.collection(`artifacts/${appId}/users/${staffUid}/inventory`);
-                const staffInventoryData = {
-                    itemName,
-                    itemType: stockSnap.data().itemType,
-                    quantity,
-                    coopId: 'Dispatch from Warehouse',
-                    deliveryNotes: `Dispatched from warehouse by admin ${firebase.auth().currentUser.uid}`,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                await staffInventoryRef.add(staffInventoryData);
-
+                await updateDoc(stockRef, { quantity: stockSnap.data().quantity - quantity, timestamp: serverTimestamp() });
+                const dispatchData = { itemName, quantity, staffUid, timestamp: serverTimestamp(), adminId: auth.currentUser.uid };
+                await addDoc(collection(db, `artifacts/${appId}/public/data/dispatches`), dispatchData);
+                const staffInventoryData = { itemName, itemType: stockSnap.data().itemType, quantity, coopId: 'Dispatch from Warehouse', deliveryNotes: `Dispatched from warehouse by admin ${auth.currentUser.uid}`, timestamp: serverTimestamp() };
+                await addDoc(collection(db, `artifacts/${appId}/users/${staffUid}/inventory`), staffInventoryData);
                 showModal('Dispatch Successful!', `${quantity} units of ${itemName} dispatched to staff member.`);
-                dispatchForm.reset();
+                document.getElementById('dispatch-form').reset();
             } catch (error) {
                 console.error("Error dispatching item: ", error);
                 showModal('Error', 'Failed to dispatch item. Please check the console.');
@@ -2191,32 +1392,18 @@
             let y = 30;
             doc.text("Sales Summary", 10, y += 10);
             const salesTable = salesData.map(sale => [
-                sale.id,
-                sale.saleItem,
-                sale.saleQuantity,
-                `GHS ${sale.salePrice.toFixed(2)}`,
-                sale.timestamp ? sale.timestamp.toDate().toLocaleDateString() : 'N/A'
+                sale.id, sale.saleItem, sale.saleQuantity, `GHS ${sale.salePrice.toFixed(2)}`,
+                sale.timestamp ? new Date(sale.timestamp.toDate()).toLocaleDateString() : 'N/A'
             ]);
-            doc.autoTable({
-                startY: y + 5,
-                head: [['ID', 'Item', 'Quantity', 'Revenue', 'Date']],
-                body: salesTable
-            });
+            doc.autoTable({ startY: y + 5, head: [['ID', 'Item', 'Quantity', 'Revenue', 'Date']], body: salesTable });
 
             y = doc.autoTable.previous.finalY + 10;
             doc.text("Incident Summary", 10, y);
             const incidentsTable = incidentsData.map(incident => [
-                incident.id,
-                incident.incidentTitle,
-                incident.incidentType,
-                incident.status,
-                incident.timestamp ? incident.timestamp.toDate().toLocaleDateString() : 'N/A'
+                incident.id, incident.incidentTitle, incident.incidentType, incident.status,
+                incident.timestamp ? new Date(incident.timestamp.toDate()).toLocaleDateString() : 'N/A'
             ]);
-            doc.autoTable({
-                startY: y + 5,
-                head: [['ID', 'Title', 'Type', 'Status', 'Date']],
-                body: incidentsTable
-            });
+            doc.autoTable({ startY: y + 5, head: [['ID', 'Title', 'Type', 'Status', 'Date']], body: incidentsTable });
 
             doc.save("NSA_Report.pdf");
             showModal('Download Complete', 'PDF report has been generated and downloaded.');
@@ -2224,62 +1411,35 @@
 
         document.getElementById('download-excel-report').onclick = () => {
             const reportData = [
-                ["NSA Ecosystem Report"],
-                [`Generated: ${new Date().toLocaleDateString()}`],
+                ["NSA Ecosystem Report"], [`Generated: ${new Date().toLocaleDateString()}`], [],
+                ["Sales Summary"], ["ID", "Item", "Quantity", "Revenue", "Date"],
+                ...salesData.map(sale => [sale.id, sale.saleItem, sale.saleQuantity, sale.salePrice, sale.timestamp ? new Date(sale.timestamp.toDate()).toLocaleDateString() : 'N/A']),
                 [],
-                ["Sales Summary"],
-                ["ID", "Item", "Quantity", "Revenue", "Date"],
-                ...salesData.map(sale => [
-                    sale.id,
-                    sale.saleItem,
-                    sale.saleQuantity,
-                    sale.salePrice,
-                    sale.timestamp ? sale.timestamp.toDate().toLocaleDateString() : 'N/A'
-                ]),
-                [],
-                ["Incident Summary"],
-                ["ID", "Title", "Type", "Status", "Date"],
-                ...incidentsData.map(incident => [
-                    incident.id,
-                    incident.incidentTitle,
-                    incident.incidentType,
-                    incident.status,
-                    incident.timestamp ? incident.timestamp.toDate().toLocaleDateString() : 'N/A'
-                ])
+                ["Incident Summary"], ["ID", "Title", "Type", "Status", "Date"],
+                ...incidentsData.map(incident => [incident.id, incident.incidentTitle, incident.incidentType, incident.status, incident.timestamp ? new Date(incident.timestamp.toDate()).toLocaleDateString() : 'N/A'])
             ];
-
             const ws = XLSX.utils.aoa_to_sheet(reportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Report");
             XLSX.writeFile(wb, "NSA_Report.xlsx");
             showModal('Download Complete', 'Excel report has been generated and downloaded.');
         };
-
-        // --- Simulated BLE Tracking Logic ---
+        
         document.getElementById('simulate-ble-data').onclick = async () => {
-             const mockStaff = [
-                { id: "staff1", name: "Nana Yaw" },
-                { id: "staff2", name: "Aisha" },
-                { id: "staff3", name: "Kofi Mensah" }
-             ];
-             const randomStaff = mockStaff[Math.floor(Math.random() * mockStaff.length)];
-             const randomLat = 5.6148 + (Math.random() - 0.5) * 0.05; // Around Accra
-             const randomLng = -0.1869 + (Math.random() - 0.5) * 0.05; // Around Accra
-             try {
-                await db.collection(`artifacts/${appId}/public/data/ble_logs`).add({
-                    deviceName: `${randomStaff.name}'s ID Card`,
-                    userId: randomStaff.id,
-                    latitude: randomLat,
-                    longitude: randomLng,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            const mockStaff = [{ id: "staff1", name: "Nana Yaw" }, { id: "staff2", name: "Aisha" }, { id: "staff3", name: "Kofi Mensah" }];
+            const randomStaff = mockStaff[Math.floor(Math.random() * mockStaff.length)];
+            const randomLat = 5.6148 + (Math.random() - 0.5) * 0.05;
+            const randomLng = -0.1869 + (Math.random() - 0.5) * 0.05;
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/public/data/ble_logs`), {
+                    deviceName: `${randomStaff.name}'s ID Card`, userId: randomStaff.id, latitude: randomLat, longitude: randomLng, timestamp: serverTimestamp()
                 });
                 showModal('BLE Log Simulated', `A new BLE location log for ${randomStaff.name} has been added.`);
-             } catch (error) {
-                 console.error('Error simulating BLE data:', error);
-                 showModal('Error', 'Failed to simulate BLE data.');
-             }
+            } catch (error) {
+                console.error('Error simulating BLE data:', error);
+                showModal('Error', 'Failed to simulate BLE data.');
+            }
         };
-        
     </script>
 </body>
 </html>
