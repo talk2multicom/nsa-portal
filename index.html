@@ -15,7 +15,7 @@
             padding: 0.75rem 1.5rem;
             border-radius: 0.5rem;
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1- rgba(0, 0, 0, 0.06);
         }
         .gradient-button:hover {
             transform: translateY(-2px);
@@ -568,7 +568,6 @@
                                 <option value="mortality">Mortality</option>
                                 <option value="disease">Disease Outbreak</option>
                                 <option value="supply">Supply Shortage</option>
-                                <option value="other">Other</option>
                             </select>
                         </div>
                         <div>
@@ -1148,8 +1147,8 @@
             updateUI();
         }
         
+        // Listen for user to choose the public portal, then sign in anonymously
         document.getElementById('show-public-portal').onclick = () => {
-            // Sign in anonymously first, then show the public page
             signInAnonymously(auth).then((result) => {
                 showPage('public');
             }).catch(error => {
@@ -1162,7 +1161,7 @@
                 showPage('login');
             }).catch((error) => {
                 console.error("Sign out failed: ", error);
-                showPage('login'); // Fallback to login page
+                showPage('login');
             });
         };
         
@@ -1173,6 +1172,7 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             try {
+                // This will trigger the onAuthStateChanged listener to handle redirection
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (error) {
                 console.error("Login failed:", error);
@@ -1180,36 +1180,42 @@
             }
         });
 
+        // The central state listener for all page redirection
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 if (user.isAnonymous) {
-                     const customerUserIdSpan = document.getElementById('customer-user-id');
-                     if(customerUserIdSpan) {
-                       customerUserIdSpan.textContent = user.uid;
-                     }
-                     showPage('public');
-                     return;
-                }
-                const userEmail = user.email;
-                if (userEmail === 'admin@nsa.com') {
-                    const adminUserIdSpan = document.getElementById('admin-user-id');
-                    if (adminUserIdSpan) {
-                      adminUserIdSpan.textContent = user.uid;
+                    const customerUserIdSpan = document.getElementById('customer-user-id');
+                    if (customerUserIdSpan) {
+                        customerUserIdSpan.textContent = user.uid;
                     }
-                    showPage('admin');
-                } else if (userEmail === 'staff@nsa.com') {
-                    const staffUserIdSpan = document.getElementById('staff-user-id');
-                    if (staffUserIdSpan) {
-                      staffUserIdSpan.textContent = user.uid;
+                    if (publicPage.classList.contains('hidden') && !loginPage.classList.contains('hidden')) {
+                        // Only auto-redirect to public if we are on the login page
+                        // and not on another authenticated page already
+                        showPage('public');
                     }
-                    showPage('staff');
                 } else {
-                    signOut(auth);
-                    showModal('Access Denied', 'Your account does not have access to an internal portal.');
-                    showPage('login');
+                    const userEmail = user.email;
+                    if (userEmail === 'admin@nsa.com') {
+                        const adminUserIdSpan = document.getElementById('admin-user-id');
+                        if (adminUserIdSpan) {
+                            adminUserIdSpan.textContent = user.uid;
+                        }
+                        showPage('admin');
+                    } else if (userEmail === 'staff@nsa.com') {
+                        const staffUserIdSpan = document.getElementById('staff-user-id');
+                        if (staffUserIdSpan) {
+                            staffUserIdSpan.textContent = user.uid;
+                        }
+                        showPage('staff');
+                    } else {
+                        signOut(auth);
+                        showModal('Access Denied', 'Your account does not have access to an internal portal.');
+                        showPage('login');
+                    }
                 }
             } else {
-                 showPage('login');
+                // Only show login page if no user is signed in at all
+                showPage('login');
             }
         });
         
