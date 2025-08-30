@@ -157,6 +157,12 @@
                     <button id="admin-traceability-tab" class="tab-button">Traceability</button>
                     <button id="admin-training-tab" class="tab-button">Training</button>
                     <button id="admin-regulator-tab" class="tab-button">Regulator</button>
+                    <button id="admin-warehouse-tab" class="tab-button">Warehouse</button>
+                    <button id="admin-assets-tab" class="tab-button">Assets</button>
+                    <button id="admin-reports-tab" class="tab-button">Reports</button>
+                    <button id="admin-tasks-tab" class="tab-button">Tasks</button>
+                    <button id="admin-orders-tab" class="tab-button">Orders</button>
+                    <button id="admin-ble-tracking-tab" class="tab-button">BLE Tracking</button>
                 </div>
                 <div id="admin-overview-panel" class="tab-content space-y-8">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -191,7 +197,7 @@
                                 <div class="text-teal-500">
                                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10m-4-10l-8 4m8-4v10" />
-                                    </svg>
+                                     </svg>
                                 </div>
                                 <div>
                                     <p class="text-gray-900 font-medium">Feed Usage Forecast</p>
@@ -287,6 +293,188 @@
                     </div>
                 </div>
 
+                <!-- Admin Warehouse Panel (New) -->
+                <div id="admin-warehouse-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Warehouse Management</h2>
+                    
+                    <div class="dashboard-card mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Log Incoming Delivery</h3>
+                        <form id="warehouse-delivery-form" class="space-y-4">
+                            <div>
+                                <label for="warehouse-item-name" class="block text-gray-700 font-medium mb-2">Item Name</label>
+                                <input type="text" id="warehouse-item-name" name="itemName" placeholder="e.g., Finisher Mash" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="warehouse-item-type" class="block text-gray-700 font-medium mb-2">Item Type</label>
+                                <select id="warehouse-item-type" name="itemType" class="w-full">
+                                    <option value="feed">Feed</option>
+                                    <option value="medicine">Medicine</option>
+                                    <option value="vaccine">Vaccine</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="warehouse-quantity" class="block text-gray-700 font-medium mb-2">Quantity</label>
+                                <input type="number" id="warehouse-quantity" name="quantity" placeholder="e.g., 100" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="warehouse-supplier" class="block text-gray-700 font-medium mb-2">Supplier</label>
+                                <input type="text" id="warehouse-supplier" name="supplier" placeholder="e.g., Agricorp Ltd." class="w-full">
+                            </div>
+                            <button type="submit" class="gradient-button w-full">Log Delivery</button>
+                        </form>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Dispatch Inventory to Staff</h3>
+                        <div class="space-y-4">
+                            <h4 class="font-medium text-gray-700">Current Stock Levels</h4>
+                            <div id="warehouse-stock-list" class="space-y-2">
+                                <p class="text-gray-500">Loading stock data...</p>
+                            </div>
+                        </div>
+                        <form id="dispatch-form" class="space-y-4 mt-8">
+                            <div>
+                                <label for="dispatch-item-name" class="block text-gray-700 font-medium mb-2">Item to Dispatch</label>
+                                <select id="dispatch-item-name" name="itemName" class="w-full" required>
+                                    <option value="">-- Select an item --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="dispatch-quantity" class="block text-gray-700 font-medium mb-2">Quantity to Dispatch</label>
+                                <input type="number" id="dispatch-quantity" name="quantity" placeholder="e.g., 10" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="dispatch-staff-uid" class="block text-gray-700 font-medium mb-2">Recipient Staff User ID</label>
+                                <input type="text" id="dispatch-staff-uid" name="staffUid" placeholder="Enter Staff User ID" class="w-full" required>
+                            </div>
+                            <button type="submit" class="gradient-button w-full">Dispatch Item</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Admin Asset Tracking Panel (New) -->
+                <div id="admin-assets-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Asset Management</h2>
+                    <div class="dashboard-card mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Add New Asset</h3>
+                        <form id="add-asset-form" class="space-y-4">
+                            <div>
+                                <label for="asset-name" class="block text-gray-700 font-medium mb-2">Asset Name</label>
+                                <input type="text" id="asset-name" name="name" placeholder="e.g., Delivery Truck #1" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="asset-type" class="block text-gray-700 font-medium mb-2">Asset Type</label>
+                                <input type="text" id="asset-type" name="type" placeholder="e.g., Vehicle, Equipment" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="asset-assigned-to" class="block text-gray-700 font-medium mb-2">Assigned To (Staff User ID)</label>
+                                <input type="text" id="asset-assigned-to" name="assignedTo" placeholder="Enter Staff User ID" class="w-full">
+                            </div>
+                            <button type="submit" class="gradient-button w-full">Add Asset</button>
+                        </form>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Current Asset Status</h3>
+                        <div id="admin-asset-list" class="space-y-2">
+                            <p class="text-gray-500">Loading asset data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Reports Panel (New) -->
+                <div id="admin-reports-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Reports & Analytics</h2>
+                    <div class="dashboard-card mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Key Metrics Summary</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="stat-box">
+                                <p class="text-sm font-medium text-gray-500">Total Sales Revenue</p>
+                                <p id="report-total-revenue" class="mt-1 text-3xl font-bold text-emerald-600">GHS 0.00</p>
+                            </div>
+                            <div class="stat-box">
+                                <p class="text-sm font-medium text-gray-500">Incidents Reported</p>
+                                <p id="report-total-incidents" class="mt-1 text-3xl font-bold text-red-500">0</p>
+                            </div>
+                            <div class="stat-box">
+                                <p class="text-sm font-medium text-gray-500">Total Deliveries</p>
+                                <p id="report-total-deliveries" class="mt-1 text-3xl font-bold text-sky-500">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Download Reports</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button id="download-pdf-report" class="gradient-button flex items-center justify-center space-x-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2h-8a2 2 0 01-2-2V4zm2 2a1 1 0 000 2h8a1 1 0 100-2H6zm0 4a1 1 0 000 2h8a1 1 0 100-2H6zm0 4a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                </svg>
+                                <span>Download PDF Report</span>
+                            </button>
+                            <button id="download-excel-report" class="gradient-button flex items-center justify-center space-x-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-11.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L8.586 11H3a1 1 0 110-2h5.586L6.293 7.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>Download Excel Report</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Tasks Panel (New) -->
+                <div id="admin-tasks-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Task Assignment</h2>
+                    <div class="dashboard-card mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Assign a New Task</h3>
+                        <form id="assign-task-form" class="space-y-4">
+                            <div>
+                                <label for="task-title" class="block text-gray-700 font-medium mb-2">Task Title</label>
+                                <input type="text" id="task-title" name="title" placeholder="e.g., Feed Delivery to Coop B" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="task-description" class="block text-gray-700 font-medium mb-2">Description</label>
+                                <textarea id="task-description" name="description" rows="3" placeholder="Provide details of the task..." class="w-full" required></textarea>
+                            </div>
+                            <div>
+                                <label for="task-assigned-to" class="block text-gray-700 font-medium mb-2">Assigned To (Staff User ID)</label>
+                                <input type="text" id="task-assigned-to" name="assignedTo" placeholder="Enter Staff User ID" class="w-full" required>
+                            </div>
+                            <div>
+                                <label for="task-due-date" class="block text-gray-700 font-medium mb-2">Due Date</label>
+                                <input type="date" id="task-due-date" name="dueDate" class="w-full">
+                            </div>
+                            <button type="submit" class="gradient-button w-full">Assign Task</button>
+                        </form>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Current Tasks</h3>
+                        <div id="admin-task-list" class="space-y-2">
+                            <p class="text-gray-500">Loading task data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Orders Panel (New) -->
+                <div id="admin-orders-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Customer Orders</h2>
+                    <div id="admin-orders-list" class="space-y-4">
+                        <p class="text-gray-500 text-center">No orders found.</p>
+                    </div>
+                </div>
+
+                <!-- Admin BLE Tracking Panel (New) -->
+                <div id="admin-ble-tracking-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Live BLE Staff Tracking (Simulated)</h2>
+                    <div class="dashboard-card">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Live Location Feed</h3>
+                        <div id="ble-tracking-list" class="space-y-4">
+                             <p class="text-gray-500">Awaiting BLE logs...</p>
+                        </div>
+                        <button id="simulate-ble-data" class="gradient-button mt-4 w-full text-sm">Simulate New BLE Log</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -305,6 +493,8 @@
                     <button id="staff-inventory-tab" class="tab-button active">Inventory</button>
                     <button id="staff-sales-tab" class="tab-button">Sales</button>
                     <button id="staff-incidents-tab" class="tab-button">Incidents</button>
+                    <button id="staff-assets-tab" class="tab-button">Assets</button>
+                    <button id="staff-tasks-tab" class="tab-button">Tasks</button>
                 </div>
                 <div id="staff-inventory-panel" class="tab-content space-y-6">
                     <h2 class="text-xl font-semibold text-gray-700 text-center">Log Inventory Delivery</h2>
@@ -389,8 +579,26 @@
                             <label for="incidentNotes" class="block text-gray-700 font-medium mb-2">Description</label>
                             <textarea id="incidentNotes" name="incidentNotes" rows="5" placeholder="Provide details, affected coop, number of birds, etc." class="w-full"></textarea>
                         </div>
+                        <div>
+                            <label for="incidentPhoto" class="block text-gray-700 font-medium mb-2">Photo Upload</label>
+                            <input type="file" id="incidentPhoto" name="incidentPhoto" accept="image/*" class="w-full">
+                        </div>
                         <button type="submit" id="report-incident-button" class="gradient-button w-full">Report Incident</button>
                     </form>
+                </div>
+                <!-- Staff Asset Tracking Panel (New) -->
+                <div id="staff-assets-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">My Assigned Assets</h2>
+                    <div id="staff-asset-list" class="space-y-4">
+                        <p class="text-gray-500 text-center">No assets assigned.</p>
+                    </div>
+                </div>
+                 <!-- Staff Tasks Panel (New) -->
+                <div id="staff-tasks-panel" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">My Work Orders</h2>
+                    <div id="staff-task-list" class="space-y-4">
+                        <p class="text-gray-500 text-center">No tasks assigned.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -412,22 +620,24 @@
                     <button id="traceability-tab" class="tab-button">Traceability</button>
                 </div>
                 <div id="marketplace-panel" class="tab-content space-y-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        <!-- New Banners -->
-                        <div class="p-4 rounded-lg bg-white flex flex-col items-center text-center">
-                            <img src="https://images.unsplash.com/photo-1579621970795-87facc2f976d?q=80&w=2000&auto=format&fit=crop" alt="Smart Agro banner" class="banner-image mb-2">
-                            <p class="font-bold text-gray-800">Smart Agro</p>
+                    <div class="relative w-full h-96 rounded-xl overflow-hidden shadow-lg">
+                        <img src="https://images.unsplash.com/photo-1579621970795-87facc2f976d?q=80&w=2000&auto=format&fit=crop" alt="Smart Agro" class="absolute inset-0 w-full h-full object-cover z-0 transition-transform duration-500 hover:scale-105">
+                        <div class="relative z-10 flex flex-col items-center justify-center h-full text-white bg-black bg-opacity-40 p-4">
+                            <h2 class="text-4xl md:text-5xl font-extrabold text-center tracking-tight">Smart Agriculture</h2>
+                            <p class="mt-2 text-lg text-center font-medium">Farming for a sustainable future.</p>
                         </div>
-                        <div class="p-4 rounded-lg bg-white flex flex-col items-center text-center">
-                            <img src="https://images.unsplash.com/photo-1617208491873-a657c6b24d73?q=80&w=2000&auto=format&fit=crop" alt="Poultry banner" class="banner-image mb-2">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="p-6 rounded-xl bg-green-50 shadow-inner flex flex-col items-center text-center">
+                            <img src="https://images.unsplash.com/photo-1617208491873-a657c6b24d73?q=80&w=2000&auto=format&fit=crop" alt="Poultry" class="w-full h-40 object-cover rounded-lg mb-4">
                             <p class="font-bold text-gray-800">Poultry</p>
                         </div>
-                        <div class="p-4 rounded-lg bg-white flex flex-col items-center text-center">
-                            <img src="https://images.unsplash.com/photo-1549646467-f273b53f33de?q=80&w=2000&auto=format&fit=fit=crop" alt="Cold Chain banner" class="banner-image mb-2">
+                        <div class="p-6 rounded-xl bg-blue-50 shadow-inner flex flex-col items-center text-center">
+                            <img src="https://images.unsplash.com/photo-1549646467-f273b53f33de?q=80&w=2000&auto=format&fit=fit=crop" alt="Cold Chain" class="w-full h-40 object-cover rounded-lg mb-4">
                             <p class="font-bold text-gray-800">Cold Chain</p>
                         </div>
-                        <div class="p-4 rounded-lg bg-white flex flex-col items-center text-center">
-                            <img src="https://images.unsplash.com/photo-1582234375003-88390885e347?q=80&w=2000&auto=format&fit=fit=crop" alt="Post-Harvest banner" class="banner-image mb-2">
+                        <div class="p-6 rounded-xl bg-orange-50 shadow-inner flex flex-col items-center text-center">
+                            <img src="https://images.unsplash.com/photo-1582234375003-88390885e347?q=80&w=2000&auto=format&fit=fit=crop" alt="Post-Harvest" class="w-full h-40 object-cover rounded-lg mb-4">
                             <p class="font-bold text-gray-800">Post-Harvest</p>
                         </div>
                     </div>
@@ -465,6 +675,14 @@
                                 <label for="quantity" class="block text-gray-700 font-medium mb-2">Quantity</label>
                                 <input type="number" id="quantity" name="quantity" placeholder="e.g., 100" class="w-full" required>
                             </div>
+                            <div>
+                                <label for="paymentMethod" class="block text-gray-700 font-medium mb-2">Payment Method</label>
+                                <select id="paymentMethod" name="paymentMethod" class="w-full" required>
+                                    <option value="memo">Memo</option>
+                                    <option value="bank-transfer">Bank Transfer</option>
+                                    <option value="card">Visa/MasterCard</option>
+                                </select>
+                            </div>
                             <button type="submit" id="submit-order-button" class="gradient-button w-full">Submit Order Request</button>
                         </form>
                     </div>
@@ -494,9 +712,17 @@
                                 <span class="font-medium">Quantity:</span>
                                 <span id="result-quantity"></span>
                             </div>
+                            <div class="flex justify-between items-start">
+                                <span class="font-medium">Payment Method:</span>
+                                <span id="result-payment-method" class="text-sm text-right"></span>
+                            </div>
                             <div class="flex justify-between">
-                                <span class="font-medium">Status:</span>
+                                <span class="font-medium">Current Status:</span>
                                 <span id="result-status" class="font-bold text-blue-500"></span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="font-medium">Delivery History:</span>
+                                <ul id="result-delivery-history" class="list-disc list-inside text-sm text-gray-600 ml-4"></ul>
                             </div>
                         </div>
                     </div>
@@ -568,8 +794,12 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, addDoc, collection, doc, getDoc, onSnapshot, query, setLogLevel, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, addDoc, collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, setLogLevel, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
+        // Libraries for PDF and Excel generation from CDNs
+        import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
+        import "https://unpkg.com/xlsx/dist/xlsx.full.min.js";
+
         setLogLevel('debug');
         
         const appId = 'nsa-miot';
@@ -768,7 +998,7 @@
                 inventory_item_name: 'Nudɔ ŋkɔ',
                 inventory_quantity: 'Hlɔŋ',
                 inventory_notes: 'Nuwo ƒe nya',
-                inventory_log_button: 'Dzra Nudɔwo ɖi',
+                inventory_log_button: 'Dzra Nuwo ɖi',
                 sales_header: 'Dzra Nuwo ɖi',
                 sales_item: 'Nudɔ aɖe',
                 sales_quantity: 'Hlɔŋ',
@@ -957,7 +1187,8 @@
                      if(customerUserIdSpan) {
                        customerUserIdSpan.textContent = user.uid;
                      }
-                     return; // Don't redirect, the button click handler already handled it
+                     showPage('public');
+                     return;
                 }
                 const userEmail = user.email;
                 if (userEmail === 'admin@nsa.com') {
@@ -990,6 +1221,13 @@
         const adminTraceabilityTab = document.getElementById('admin-traceability-tab');
         const adminTrainingTab = document.getElementById('admin-training-tab');
         const adminRegulatorTab = document.getElementById('admin-regulator-tab');
+        const adminWarehouseTab = document.getElementById('admin-warehouse-tab');
+        const adminAssetsTab = document.getElementById('admin-assets-tab');
+        const adminReportsTab = document.getElementById('admin-reports-tab');
+        const adminTasksTab = document.getElementById('admin-tasks-tab');
+        const adminOrdersTab = document.getElementById('admin-orders-tab');
+        const adminBLETrackingTab = document.getElementById('admin-ble-tracking-tab');
+
         const adminOverviewPanel = document.getElementById('admin-overview-panel');
         const adminInventoryPanel = document.getElementById('admin-inventory-panel');
         const adminSalesPanel = document.getElementById('admin-sales-panel');
@@ -997,6 +1235,12 @@
         const adminTraceabilityPanel = document.getElementById('admin-traceability-panel');
         const adminTrainingPanel = document.getElementById('admin-training-panel');
         const adminRegulatorPanel = document.getElementById('admin-regulator-panel');
+        const adminWarehousePanel = document.getElementById('admin-warehouse-panel');
+        const adminAssetsPanel = document.getElementById('admin-assets-panel');
+        const adminReportsPanel = document.getElementById('admin-reports-panel');
+        const adminTasksPanel = document.getElementById('admin-tasks-panel');
+        const adminOrdersPanel = document.getElementById('admin-orders-panel');
+        const adminBLETrackingPanel = document.getElementById('admin-ble-tracking-panel');
         
         function switchAdminTab(tab) {
             adminOverviewTab.classList.remove('active');
@@ -1006,6 +1250,13 @@
             adminTraceabilityTab.classList.remove('active');
             adminTrainingTab.classList.remove('active');
             adminRegulatorTab.classList.remove('active');
+            adminWarehouseTab.classList.remove('active');
+            adminAssetsTab.classList.remove('active');
+            adminReportsTab.classList.remove('active');
+            adminTasksTab.classList.remove('active');
+            adminOrdersTab.classList.remove('active');
+            adminBLETrackingTab.classList.remove('active');
+
             adminOverviewPanel.classList.add('hidden');
             adminInventoryPanel.classList.add('hidden');
             adminSalesPanel.classList.add('hidden');
@@ -1013,6 +1264,12 @@
             adminTraceabilityPanel.classList.add('hidden');
             adminTrainingPanel.classList.add('hidden');
             adminRegulatorPanel.classList.add('hidden');
+            adminWarehousePanel.classList.add('hidden');
+            adminAssetsPanel.classList.add('hidden');
+            adminReportsPanel.classList.add('hidden');
+            adminTasksPanel.classList.add('hidden');
+            adminOrdersPanel.classList.add('hidden');
+            adminBLETrackingPanel.classList.add('hidden');
             
             if (tab === 'overview') {
                 adminOverviewTab.classList.add('active');
@@ -1035,6 +1292,24 @@
             } else if (tab === 'regulator') {
                 adminRegulatorTab.classList.add('active');
                 adminRegulatorPanel.classList.remove('hidden');
+            } else if (tab === 'warehouse') {
+                adminWarehouseTab.classList.add('active');
+                adminWarehousePanel.classList.remove('hidden');
+            } else if (tab === 'assets') {
+                adminAssetsTab.classList.add('active');
+                adminAssetsPanel.classList.remove('hidden');
+            } else if (tab === 'reports') {
+                adminReportsTab.classList.add('active');
+                adminReportsPanel.classList.remove('hidden');
+            } else if (tab === 'tasks') {
+                adminTasksTab.classList.add('active');
+                adminTasksPanel.classList.remove('hidden');
+            } else if (tab === 'orders') {
+                adminOrdersTab.classList.add('active');
+                adminOrdersPanel.classList.remove('hidden');
+            } else if (tab === 'ble-tracking') {
+                adminBLETrackingTab.classList.add('active');
+                adminBLETrackingPanel.classList.remove('hidden');
             }
         }
         adminOverviewTab.onclick = () => switchAdminTab('overview');
@@ -1044,6 +1319,12 @@
         adminTraceabilityTab.onclick = () => switchAdminTab('traceability');
         adminTrainingTab.onclick = () => switchAdminTab('training');
         adminRegulatorTab.onclick = () => switchAdminTab('regulator');
+        adminWarehouseTab.onclick = () => switchAdminTab('warehouse');
+        adminAssetsTab.onclick = () => switchAdminTab('assets');
+        adminReportsTab.onclick = () => switchAdminTab('reports');
+        adminTasksTab.onclick = () => switchAdminTab('tasks');
+        adminOrdersTab.onclick = () => switchAdminTab('orders');
+        adminBLETrackingTab.onclick = () => switchAdminTab('ble-tracking');
         
         // Admin render functions
         const renderAdminInventory = (item) => `
@@ -1070,38 +1351,171 @@
             </div>
             `;
         };
+        
+        const renderAdminTask = (task) => {
+            const statusColor = task.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
+            return `
+            <div class="list-item flex-col items-start space-y-1">
+                <div class="flex justify-between w-full">
+                    <span class="text-sm font-medium text-gray-700">${task.title}</span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${task.status || 'Assigned'}</span>
+                </div>
+                <p class="text-gray-500 text-xs">${task.description}</p>
+                <p class="text-xs text-gray-400">Assigned to: ${task.assignedTo}</p>
+            </div>
+            `;
+        };
+        
+        const renderAdminOrder = (order) => {
+            const statusColor = order.status === 'Completed' ? 'bg-green-100 text-green-700' : (order.status === 'Processing' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700');
+            return `
+            <div class="dashboard-card flex flex-col items-start">
+                <div class="flex justify-between w-full">
+                    <span class="text-lg font-bold text-gray-800">Order ID: ${order.id}</span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${order.status}</span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Customer: ${order.customerName} (${order.customerEmail})</p>
+                <p class="text-sm text-gray-500">Product: ${order.product} (${order.quantity})</p>
+                <p class="text-sm text-gray-500">Payment: ${order.paymentMethod}</p>
+                <div class="mt-4 w-full">
+                    <label for="status-update-${order.id}" class="block text-sm font-medium text-gray-700 mb-2">Update Status</label>
+                    <select id="status-update-${order.id}" class="w-full">
+                        <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                        <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
+                        <option value="Out for Delivery" ${order.status === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
+                        <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                    </select>
+                    <button onclick="updateOrderStatus('${order.id}')" class="gradient-button mt-2 w-full text-sm py-2">Update</button>
+                </div>
+            </div>
+            `;
+        };
+        window.updateOrderStatus = async (orderId) => {
+            const selectElement = document.getElementById(`status-update-${orderId}`);
+            const newStatus = selectElement.value;
+            const orderRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
+            try {
+                const docSnap = await getDoc(orderRef);
+                const currentHistory = docSnap.data().deliveryHistory || [];
+                const newHistory = [...currentHistory, { status: newStatus, timestamp: new Date() }];
+                await updateDoc(orderRef, {
+                    status: newStatus,
+                    deliveryHistory: newHistory
+                });
+                showModal('Success!', `Order ${orderId} status updated to ${newStatus}.`);
+            } catch (error) {
+                console.error("Error updating order status:", error);
+                showModal('Error', 'Failed to update order status. Please try again.');
+            }
+        };
 
-        function updateAdminAnalytics(incidents, sales, inventory) {
-            const mortalityCount = incidents.filter(i => i.incidentType === 'mortality').length;
+        // Global variables to hold report data
+        let salesData = [];
+        let incidentsData = [];
+        let deliveriesData = [];
+
+        function updateAdminAnalytics() {
+            const mortalityCount = incidentsData.filter(i => i.incidentType === 'mortality').length;
             const mortalityTrend = mortalityCount > 5 ? 'High mortality detected. Immediate action required.' : 'Mortality is within normal range.';
-            const totalFeedQuantity = inventory.filter(i => i.itemType === 'feed').reduce((sum, item) => sum + item.quantity, 0);
+            const totalFeedQuantity = deliveriesData.filter(i => i.itemType === 'feed').reduce((sum, item) => sum + item.quantity, 0);
             const feedForecast = `Total feed logged: ${totalFeedQuantity} units. Forecast pending.`
-            document.getElementById('total-revenue').textContent = `GHS ${sales.reduce((sum, sale) => sum + sale.salePrice, 0).toFixed(2)}`;
-            document.getElementById('total-incidents').textContent = incidents.length;
-            document.getElementById('total-inventory').textContent = inventory.length;
+            const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.salePrice || 0), 0);
+            
+            // Update Overview panel
+            document.getElementById('total-revenue').textContent = `GHS ${totalRevenue.toFixed(2)}`;
+            document.getElementById('total-incidents').textContent = incidentsData.length;
+            document.getElementById('total-inventory').textContent = deliveriesData.length;
             document.getElementById('mortality-trend').textContent = mortalityTrend;
             document.getElementById('feed-forecast').textContent = feedForecast;
+
+            // Update Reports panel
+            document.getElementById('report-total-revenue').textContent = `GHS ${totalRevenue.toFixed(2)}`;
+            document.getElementById('report-total-incidents').textContent = incidentsData.length;
+            document.getElementById('report-total-deliveries').textContent = deliveriesData.length;
         }
+
+        // Admin Assets Logic
+        const addAssetForm = document.getElementById('add-asset-form');
+        const adminAssetList = document.getElementById('admin-asset-list');
+        addAssetForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('asset-name').value,
+                type: document.getElementById('asset-type').value,
+                assignedTo: document.getElementById('asset-assigned-to').value,
+                status: 'Available',
+                timestamp: serverTimestamp()
+            };
+            if (!data.name || !data.type) {
+                showModal('Input Required', 'Please fill in all required fields.');
+                return;
+            }
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/public/data/assets`), data);
+                showModal('Success!', 'Asset added successfully.');
+                addAssetForm.reset();
+            } catch (error) {
+                console.error("Error adding asset: ", error);
+                showModal('Error', 'Failed to add asset. Please check the console.');
+            }
+        };
+        
+        // Admin Tasks Logic
+        const assignTaskForm = document.getElementById('assign-task-form');
+        const adminTaskList = document.getElementById('admin-task-list');
+        assignTaskForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                title: document.getElementById('task-title').value,
+                description: document.getElementById('task-description').value,
+                assignedTo: document.getElementById('task-assigned-to').value,
+                dueDate: document.getElementById('task-due-date').value,
+                status: 'Assigned',
+                timestamp: serverTimestamp()
+            };
+            if (!data.title || !data.assignedTo) {
+                showModal('Input Required', 'Please fill in all required fields.');
+                return;
+            }
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/public/data/work_orders`), data);
+                showModal('Success!', 'Task assigned successfully.');
+                assignTaskForm.reset();
+            } catch (error) {
+                console.error("Error assigning task: ", error);
+                showModal('Error', 'Failed to assign task. Please check the console.');
+            }
+        };
 
         // --- Staff App Logic ---
         const staffInventoryTab = document.getElementById('staff-inventory-tab');
         const staffSalesTab = document.getElementById('staff-sales-tab');
         const staffIncidentsTab = document.getElementById('staff-incidents-tab');
+        const staffAssetsTab = document.getElementById('staff-assets-tab');
+        const staffTasksTab = document.getElementById('staff-tasks-tab');
         const staffInventoryPanel = document.getElementById('staff-inventory-panel');
         const staffSalesPanel = document.getElementById('staff-sales-panel');
         const staffIncidentsPanel = document.getElementById('staff-incidents-panel');
+        const staffAssetsPanel = document.getElementById('staff-assets-panel');
+        const staffTasksPanel = document.getElementById('staff-tasks-panel');
         const inventoryForm = document.getElementById('inventory-form');
         const salesForm = document.getElementById('sales-form');
         const incidentsForm = document.getElementById('incidents-form');
         const recentInventoryList = document.getElementById('recent-inventory-list');
+        const staffAssetList = document.getElementById('staff-asset-list');
+        const staffTaskList = document.getElementById('staff-task-list');
         
         function switchStaffTab(tab) {
             staffInventoryTab.classList.remove('active');
             staffSalesTab.classList.remove('active');
             staffIncidentsTab.classList.remove('active');
+            staffAssetsTab.classList.remove('active');
+            staffTasksTab.classList.remove('active');
             staffInventoryPanel.classList.add('hidden');
             staffSalesPanel.classList.add('hidden');
             staffIncidentsPanel.classList.add('hidden');
+            staffAssetsPanel.classList.add('hidden');
+            staffTasksPanel.classList.add('hidden');
             if (tab === 'inventory') {
                 staffInventoryTab.classList.add('active');
                 staffInventoryPanel.classList.remove('hidden');
@@ -1111,11 +1525,19 @@
             } else if (tab === 'incidents') {
                 staffIncidentsTab.classList.add('active');
                 staffIncidentsPanel.classList.remove('hidden');
+            } else if (tab === 'assets') {
+                staffAssetsTab.classList.add('active');
+                staffAssetsPanel.classList.remove('hidden');
+            } else if (tab === 'tasks') {
+                staffTasksTab.classList.add('active');
+                staffTasksPanel.classList.remove('hidden');
             }
         }
         staffInventoryTab.onclick = () => switchStaffTab('inventory');
         staffSalesTab.onclick = () => switchStaffTab('sales');
         staffIncidentsTab.onclick = () => switchStaffTab('incidents');
+        staffAssetsTab.onclick = () => switchStaffTab('assets');
+        staffTasksTab.onclick = () => switchStaffTab('tasks');
         
         onAuthStateChanged(auth, user => {
             if (user && !user.isAnonymous) {
@@ -1127,6 +1549,24 @@
                         logs.push({ id: doc.id, ...doc.data() });
                     });
                     renderRecentInventory(logs);
+                });
+                // Listen for assets assigned to this user
+                const assetsRef = collection(db, `artifacts/${appId}/public/data/assets`);
+                onSnapshot(query(assetsRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                    const assets = [];
+                    snapshot.forEach(doc => {
+                        assets.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderStaffAssets(assets);
+                });
+                // Listen for tasks assigned to this user
+                const tasksRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
+                onSnapshot(query(tasksRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                    const tasks = [];
+                    snapshot.forEach(doc => {
+                        tasks.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderStaffTasks(tasks);
                 });
             }
         });
@@ -1147,6 +1587,52 @@
             }
         }
         
+        function renderStaffAssets(assets) {
+            if (assets.length === 0) {
+                staffAssetList.innerHTML = '<p class="text-gray-500 text-center">No assets assigned.</p>';
+            } else {
+                staffAssetList.innerHTML = assets.map(asset => `
+                    <div class="dashboard-card flex flex-col items-start">
+                        <span class="text-lg font-bold text-gray-800">${asset.name}</span>
+                        <span class="text-sm text-gray-500 mt-1">Type: ${asset.type}</span>
+                        <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
+                        <span class="text-xs font-semibold mt-2 px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        function renderStaffTasks(tasks) {
+            if (tasks.length === 0) {
+                staffTaskList.innerHTML = '<p class="text-gray-500 text-center">No tasks assigned.</p>';
+            } else {
+                staffTaskList.innerHTML = tasks.map(task => `
+                    <div class="dashboard-card flex flex-col items-start">
+                        <div class="flex justify-between w-full">
+                            <span class="text-lg font-bold text-gray-800">${task.title}</span>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${task.status === 'Completed' ? 'bg-green-500' : 'bg-blue-500'}">${task.status || 'Assigned'}</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1">${task.description}</p>
+                        <p class="text-xs text-gray-400 mt-1">Due: ${task.dueDate}</p>
+                        ${task.status !== 'Completed' ? `<button onclick="updateTaskStatus('${task.id}', 'Completed')" class="gradient-button mt-4 w-full text-sm py-2">Mark as Complete</button>` : ''}
+                    </div>
+                `).join('');
+            }
+        }
+        window.updateTaskStatus = async (taskId, newStatus) => {
+             const taskRef = doc(db, `artifacts/${appId}/public/data/work_orders`, taskId);
+             try {
+                 await updateDoc(taskRef, {
+                     status: newStatus,
+                     completedAt: serverTimestamp()
+                 });
+                 showModal('Success!', 'Task status updated successfully.');
+             } catch (error) {
+                 console.error("Error updating task status:", error);
+                 showModal('Error', 'Failed to update task status. Please try again.');
+             }
+        };
+
         inventoryForm.onsubmit = async (e) => {
             e.preventDefault();
             const data = {
@@ -1198,11 +1684,15 @@
 
         incidentsForm.onsubmit = async (e) => {
             e.preventDefault();
+            const photoFile = document.getElementById('incidentPhoto').files[0];
+            const photoUrl = photoFile ? `https://storage.googleapis.com/your-bucket/incidents/${Date.now()}_${photoFile.name}` : null;
+            
             const data = {
                 incidentType: document.getElementById('incidentType').value,
                 incidentTitle: document.getElementById('incidentTitle').value,
                 incidentNotes: document.getElementById('incidentNotes').value,
-                status: 'Pending', // Initial status
+                photoUrl: photoUrl,
+                status: 'Pending',
                 timestamp: serverTimestamp(),
                 userId: auth.currentUser.uid
             };
@@ -1212,7 +1702,7 @@
             }
             try {
                 await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/incidents`), data);
-                showModal('Success!', 'Incident reported successfully.');
+                showModal('Success!', 'Incident reported successfully. Photo upload simulated.');
                 incidentsForm.reset();
             } catch (error) {
                 console.error("Error reporting incident: ", error);
@@ -1281,7 +1771,9 @@
                 customerEmail: document.getElementById('customerEmail').value,
                 product: productInput.value,
                 quantity: parseInt(document.getElementById('quantity').value, 10),
+                paymentMethod: document.getElementById('paymentMethod').value,
                 status: 'Pending',
+                deliveryHistory: [{ status: 'Order Submitted', timestamp: new Date() }],
                 timestamp: new Date()
             };
             try {
@@ -1311,15 +1803,29 @@
                     document.getElementById('result-order-id').textContent = orderId;
                     document.getElementById('result-product').textContent = data.product;
                     document.getElementById('result-quantity').textContent = data.quantity;
+                    document.getElementById('result-payment-method').textContent = data.paymentMethod;
                     document.getElementById('result-status').textContent = data.status;
+
                     const statusSpan = document.getElementById('result-status');
                     statusSpan.classList.remove('text-blue-500', 'text-green-500', 'text-orange-500');
-                    if (data.status === 'Pending') {
-                        statusSpan.classList.add('text-blue-500');
-                    } else if (data.status === 'Processing') {
+                    if (data.status === 'Pending' || data.status === 'Processing') {
                         statusSpan.classList.add('text-orange-500');
-                    } else if (data.status === 'Completed') {
+                    } else if (data.status === 'Out for Delivery') {
+                        statusSpan.classList.add('text-blue-500');
+                    } else if (data.status === 'Delivered') {
                         statusSpan.classList.add('text-green-500');
+                    }
+                    
+                    const historyList = document.getElementById('result-delivery-history');
+                    historyList.innerHTML = '';
+                    if (data.deliveryHistory && data.deliveryHistory.length > 0) {
+                        data.deliveryHistory.forEach(step => {
+                            const li = document.createElement('li');
+                            li.textContent = `${new Date(step.timestamp.seconds * 1000).toLocaleString()}: ${step.status}`;
+                            historyList.appendChild(li);
+                        });
+                    } else {
+                        historyList.innerHTML = '<li>No delivery history available.</li>';
                     }
                     trackingResult.classList.remove('hidden');
                 } else {
@@ -1432,24 +1938,34 @@
         // --- Live Data Listeners ---
         onAuthStateChanged(auth, user => {
             if (user) {
-                // Listeners for Admin Dashboard
-                if (document.getElementById('admin-page').classList.contains('hidden') === false) {
-                    onSnapshot(collection(db, `artifacts/${appId}/users/${user.uid}/inventory`), (snapshot) => {
+                // Admin dashboard listeners - get data for reports and analytics
+                if (user.email === 'admin@nsa.com') {
+                    onSnapshot(collection(db, `artifacts/${appId}/public/data/orders`), (snapshot) => {
+                        salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        const ordersList = document.getElementById('admin-orders-list');
+                        ordersList.innerHTML = salesData.map(renderAdminOrder).join('');
+                        updateAdminAnalytics();
+                    });
+                    onSnapshot(collection(db, `artifacts/${appId}/public/data/incidents`), (snapshot) => {
+                        incidentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        document.getElementById('admin-incidents-list').innerHTML = incidentsData.map(renderAdminIncident).join('');
+                        updateAdminAnalytics();
+                    });
+                    onSnapshot(collection(db, `artifacts/${appId}/public/data/warehouse_deliveries`), (snapshot) => {
+                        deliveriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        updateAdminAnalytics();
+                    });
+                    onSnapshot(collection(db, `artifacts/${appId}/public/data/sales`), (snapshot) => {
+                        salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        document.getElementById('admin-sales-list').innerHTML = salesData.map(renderAdminSale).join('');
+                        updateAdminAnalytics();
+                    });
+                     onSnapshot(collection(db, `artifacts/${appId}/public/data/inventory`), (snapshot) => {
                         const logs = [];
                         snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
                         document.getElementById('admin-inventory-list').innerHTML = logs.map(renderAdminInventory).join('');
                     });
-                    onSnapshot(collection(db, `artifacts/${appId}/users/${user.uid}/sales`), (snapshot) => {
-                        const logs = [];
-                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
-                        document.getElementById('admin-sales-list').innerHTML = logs.map(renderAdminSale).join('');
-                    });
-                    onSnapshot(collection(db, `artifacts/${appId}/users/${user.uid}/incidents`), (snapshot) => {
-                        const logs = [];
-                        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
-                        document.getElementById('admin-incidents-list').innerHTML = logs.map(renderAdminIncident).join('');
-                        updateAdminAnalytics(logs, [], []); // sales and inventory passed empty for simplicity
-                    });
+                    
                     // New Regulator Panel Listener (Reads all public data)
                     onSnapshot(collection(db, `artifacts/${appId}/public/data/incidents`), (snapshot) => {
                         const logs = [];
@@ -1461,9 +1977,285 @@
                         snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
                         document.getElementById('regulator-traceability').innerHTML = logs.map(log => `<div class="list-item flex-col items-start"><p class="font-medium">Batch ID: ${log.id}</p><p class="text-xs">Coop: ${log.coopId}, Birds: ${log.birdCount}</p></div>`).join('');
                     });
+                     // Admin Assets Listener
+                    onSnapshot(collection(db, `artifacts/${appId}/public/data/assets`), (snapshot) => {
+                        const assets = [];
+                        snapshot.forEach(doc => assets.push({ id: doc.id, ...doc.data() }));
+                        adminAssetList.innerHTML = assets.map(asset => `
+                            <div class="list-item flex-col items-start">
+                                <span class="font-bold text-gray-800">${asset.name}</span>
+                                <span class="text-sm text-gray-500">Type: ${asset.type}</span>
+                                <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
+                                <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
+                            </div>
+                        `).join('');
+                    });
+
+                    // New Warehouse Listeners
+                    const warehouseStockRef = collection(db, `artifacts/${appId}/public/data/warehouse_stock`);
+                    onSnapshot(warehouseStockRef, (snapshot) => {
+                        const stockItems = [];
+                        snapshot.forEach(doc => stockItems.push({ id: doc.id, ...doc.data() }));
+                        const stockListHtml = stockItems.map(item => `
+                            <div class="list-item">
+                                <span class="font-medium text-gray-700">${item.itemName} (${item.itemType})</span>
+                                <span class="text-teal-600 font-semibold">${item.quantity} units</span>
+                            </div>
+                        `).join('');
+                        document.getElementById('warehouse-stock-list').innerHTML = stockListHtml || '<p class="text-gray-500">No stock items found.</p>';
+
+                        // Populate dispatch dropdown with current stock
+                        const dispatchDropdown = document.getElementById('dispatch-item-name');
+                        dispatchDropdown.innerHTML = '<option value="">-- Select an item --</option>' + stockItems.map(item => `<option value="${item.id}">${item.itemName} (${item.quantity} in stock)</option>`).join('');
+                    });
+                    
+                    // Admin Tasks Listener
+                    const workOrdersRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
+                    onSnapshot(query(workOrdersRef), (snapshot) => {
+                         const tasks = [];
+                         snapshot.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
+                         adminTaskList.innerHTML = tasks.map(renderAdminTask).join('');
+                    });
+
+                    // BLE Tracking Listener (Simulated)
+                    onSnapshot(collection(db, `artifacts/${appId}/public/data/ble_logs`), (snapshot) => {
+                        const bleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        document.getElementById('ble-tracking-list').innerHTML = bleLogs.map(log => `
+                            <div class="list-item flex-col items-start">
+                                <span class="font-bold text-gray-800">${log.deviceName}</span>
+                                <span class="text-sm text-gray-500">User ID: ${log.userId}</span>
+                                <span class="text-xs text-gray-400">Lat/Lng: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}</span>
+                                <span class="text-xs text-gray-400">Timestamp: ${new Date(log.timestamp.toDate()).toLocaleString()}</span>
+                            </div>
+                        `).join('');
+                    });
+
+                } else if (user.email === 'staff@nsa.com') {
+                   // Listeners for Staff App
+                    const inventoryRef = collection(db, `artifacts/${appId}/users/${user.uid}/inventory`);
+                    onSnapshot(query(inventoryRef), (snapshot) => {
+                        const logs = [];
+                        snapshot.forEach(doc => {
+                            logs.push({ id: doc.id, ...doc.data() });
+                        });
+                        renderRecentInventory(logs);
+                    });
+                    const assetsRef = collection(db, `artifacts/${appId}/public/data/assets`);
+                    onSnapshot(query(assetsRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                        const assets = [];
+                        snapshot.forEach(doc => {
+                            assets.push({ id: doc.id, ...doc.data() });
+                        });
+                        renderStaffAssets(assets);
+                    });
+                    const tasksRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
+                    onSnapshot(query(tasksRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                        const tasks = [];
+                        snapshot.forEach(doc => {
+                            tasks.push({ id: doc.id, ...doc.data() });
+                        });
+                        renderStaffTasks(tasks);
+                    });
                 }
             }
         });
+
+        // --- New Warehouse Forms Logic ---
+        const warehouseDeliveryForm = document.getElementById('warehouse-delivery-form');
+        warehouseDeliveryForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                itemName: document.getElementById('warehouse-item-name').value,
+                itemType: document.getElementById('warehouse-item-type').value,
+                quantity: parseInt(document.getElementById('warehouse-quantity').value, 10),
+                supplier: document.getElementById('warehouse-supplier').value,
+                timestamp: serverTimestamp(),
+                adminId: auth.currentUser.uid
+            };
+            if (!data.itemName || !data.quantity) {
+                showModal('Input Required', 'Please fill in all required fields.');
+                return;
+            }
+            try {
+                // Log the delivery
+                await addDoc(collection(db, `artifacts/${appId}/public/data/warehouse_deliveries`), data);
+                // Update the central stock
+                const stockRef = doc(db, `artifacts/${appId}/public/data/warehouse_stock`, data.itemName);
+                const stockSnap = await getDoc(stockRef);
+                if (stockSnap.exists()) {
+                    await updateDoc(stockRef, {
+                        quantity: stockSnap.data().quantity + data.quantity,
+                        timestamp: serverTimestamp()
+                    });
+                } else {
+                    await setDoc(stockRef, {
+                        itemName: data.itemName,
+                        itemType: data.itemType,
+                        quantity: data.quantity,
+                        timestamp: serverTimestamp()
+                    });
+                }
+                showModal('Success!', 'Delivery logged and stock updated successfully.');
+                warehouseDeliveryForm.reset();
+            } catch (error) {
+                console.error("Error logging delivery: ", error);
+                showModal('Error', 'Failed to log delivery. Please check the console.');
+            }
+        };
+
+        const dispatchForm = document.getElementById('dispatch-form');
+        dispatchForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const itemName = document.getElementById('dispatch-item-name').value;
+            const quantity = parseInt(document.getElementById('dispatch-quantity').value, 10);
+            const staffUid = document.getElementById('dispatch-staff-uid').value;
+            
+            if (!itemName || !quantity || !staffUid) {
+                showModal('Input Required', 'Please fill in all dispatch fields.');
+                return;
+            }
+            try {
+                const stockRef = doc(db, `artifacts/${appId}/public/data/warehouse_stock`, itemName);
+                const stockSnap = await getDoc(stockRef);
+                if (!stockSnap.exists() || stockSnap.data().quantity < quantity) {
+                    showModal('Dispatch Failed', 'Not enough stock available for this item.');
+                    return;
+                }
+
+                // Decrement warehouse stock
+                await updateDoc(stockRef, {
+                    quantity: stockSnap.data().quantity - quantity,
+                    timestamp: serverTimestamp()
+                });
+
+                // Log the dispatch
+                const dispatchData = {
+                    itemName,
+                    quantity,
+                    staffUid,
+                    timestamp: serverTimestamp(),
+                    adminId: auth.currentUser.uid
+                };
+                await addDoc(collection(db, `artifacts/${appId}/public/data/dispatches`), dispatchData);
+
+                // Add to staff's private inventory
+                const staffInventoryRef = collection(db, `artifacts/${appId}/users/${staffUid}/inventory`);
+                const staffInventoryData = {
+                    itemName,
+                    itemType: stockSnap.data().itemType,
+                    quantity,
+                    coopId: 'Dispatch from Warehouse',
+                    deliveryNotes: `Dispatched from warehouse by admin ${auth.currentUser.uid}`,
+                    timestamp: serverTimestamp()
+                };
+                await addDoc(staffInventoryRef, staffInventoryData);
+
+                showModal('Dispatch Successful!', `${quantity} units of ${itemName} dispatched to staff member.`);
+                dispatchForm.reset();
+            } catch (error) {
+                console.error("Error dispatching item: ", error);
+                showModal('Error', 'Failed to dispatch item. Please check the console.');
+            }
+        };
+        
+        // Report Generation Logic
+        document.getElementById('download-pdf-report').onclick = () => {
+            const doc = new jsPDF();
+            doc.text("NSA Ecosystem Report", 10, 10);
+            doc.setFontSize(12);
+            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 10, 20);
+
+            let y = 30;
+            doc.text("Sales Summary", 10, y += 10);
+            const salesTable = salesData.map(sale => [
+                sale.id,
+                sale.saleItem,
+                sale.saleQuantity,
+                `GHS ${sale.salePrice.toFixed(2)}`,
+                sale.timestamp ? new Date(sale.timestamp.toDate()).toLocaleDateString() : 'N/A'
+            ]);
+            doc.autoTable({
+                startY: y + 5,
+                head: [['ID', 'Item', 'Quantity', 'Revenue', 'Date']],
+                body: salesTable
+            });
+
+            y = doc.autoTable.previous.finalY + 10;
+            doc.text("Incident Summary", 10, y);
+            const incidentsTable = incidentsData.map(incident => [
+                incident.id,
+                incident.incidentTitle,
+                incident.incidentType,
+                incident.status,
+                incident.timestamp ? new Date(incident.timestamp.toDate()).toLocaleDateString() : 'N/A'
+            ]);
+            doc.autoTable({
+                startY: y + 5,
+                head: [['ID', 'Title', 'Type', 'Status', 'Date']],
+                body: incidentsTable
+            });
+
+            doc.save("NSA_Report.pdf");
+            showModal('Download Complete', 'PDF report has been generated and downloaded.');
+        };
+
+        document.getElementById('download-excel-report').onclick = () => {
+            const reportData = [
+                ["NSA Ecosystem Report"],
+                [`Generated: ${new Date().toLocaleDateString()}`],
+                [],
+                ["Sales Summary"],
+                ["ID", "Item", "Quantity", "Revenue", "Date"],
+                ...salesData.map(sale => [
+                    sale.id,
+                    sale.saleItem,
+                    sale.saleQuantity,
+                    sale.salePrice,
+                    sale.timestamp ? new Date(sale.timestamp.toDate()).toLocaleDateString() : 'N/A'
+                ]),
+                [],
+                ["Incident Summary"],
+                ["ID", "Title", "Type", "Status", "Date"],
+                ...incidentsData.map(incident => [
+                    incident.id,
+                    incident.incidentTitle,
+                    incident.incidentType,
+                    incident.status,
+                    incident.timestamp ? new Date(incident.timestamp.toDate()).toLocaleDateString() : 'N/A'
+                ])
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(reportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Report");
+            XLSX.writeFile(wb, "NSA_Report.xlsx");
+            showModal('Download Complete', 'Excel report has been generated and downloaded.');
+        };
+
+        // --- Simulated BLE Tracking Logic ---
+        document.getElementById('simulate-ble-data').onclick = async () => {
+             const mockStaff = [
+                { id: "staff1", name: "Nana Yaw" },
+                { id: "staff2", name: "Aisha" },
+                { id: "staff3", name: "Kofi Mensah" }
+             ];
+             const randomStaff = mockStaff[Math.floor(Math.random() * mockStaff.length)];
+             const randomLat = 5.6148 + (Math.random() - 0.5) * 0.05; // Around Accra
+             const randomLng = -0.1869 + (Math.random() - 0.5) * 0.05; // Around Accra
+             try {
+                await addDoc(collection(db, `artifacts/${appId}/public/data/ble_logs`), {
+                    deviceName: `${randomStaff.name}'s ID Card`,
+                    userId: randomStaff.id,
+                    latitude: randomLat,
+                    longitude: randomLng,
+                    timestamp: serverTimestamp()
+                });
+                showModal('BLE Log Simulated', `A new BLE location log for ${randomStaff.name} has been added.`);
+             } catch (error) {
+                 console.error('Error simulating BLE data:', error);
+                 showModal('Error', 'Failed to simulate BLE data.');
+             }
+        };
         
     </script>
 </body>
