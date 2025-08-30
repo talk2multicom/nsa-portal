@@ -790,16 +790,13 @@
         </div>
     </div>
 
-    <script type="module">
-        // Libraries for PDF and Excel generation from CDNs
-        import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
-        import "https://unpkg.com/xlsx/dist/xlsx.full.min.js";
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
-        // --- Firebase SDK imports from a stable CDN version (v8) ---
-        import firebase from "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js";
-        import "https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js";
-        import "https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js";
-
+    <script>
         firebase.firestore.setLogLevel('debug');
         
         const appId = 'nsa-miot';
