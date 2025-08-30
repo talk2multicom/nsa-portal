@@ -1367,7 +1367,7 @@
         };
         
         const renderAdminOrder = (order) => {
-            const statusColor = order.status === 'Completed' ? 'bg-green-100 text-green-700' : (order.status === 'Processing' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700');
+            const statusColor = order.status === 'Delivered' ? 'bg-green-100 text-green-700' : (order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700');
             return `
             <div class="dashboard-card flex flex-col items-start">
                 <div class="flex justify-between w-full">
@@ -1397,7 +1397,7 @@
             try {
                 const docSnap = await getDoc(orderRef);
                 const currentHistory = docSnap.data().deliveryHistory || [];
-                const newHistory = [...currentHistory, { status: newStatus, timestamp: new Date() }];
+                const newHistory = [...currentHistory, { status: newStatus, timestamp: serverTimestamp() }];
                 await updateDoc(orderRef, {
                     status: newStatus,
                     deliveryHistory: newHistory
