@@ -572,8 +572,16 @@
         
         setLogLevel('debug');
         
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = 'nsa-miot';
+        const firebaseConfig = {
+            apiKey: "AIzaSyDDbxNeMpLncUVPJtmtsFzNq0zLA9nHB_U",
+            authDomain: "nsa-miot.firebaseapp.com",
+            projectId: "nsa-miot",
+            storageBucket: "nsa-miot.firebasestorage.app",
+            messagingSenderId: "1078189349427",
+            appId: "1:1078189349427:web:9c4d6503c71da21fd2a146",
+            measurementId: "G-9RFX2052QE"
+        };
 
         let app, auth, db;
         try {
@@ -911,7 +919,8 @@
         }
         
         document.getElementById('show-public-portal').onclick = () => {
-            signInAnonymously(auth).then(() => {
+            // Sign in anonymously first, then show the public page
+            signInAnonymously(auth).then((result) => {
                 showPage('public');
             }).catch(error => {
                 console.error('Anonymous sign-in failed:', error);
@@ -944,12 +953,11 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 if (user.isAnonymous) {
-                     showPage('public');
                      const customerUserIdSpan = document.getElementById('customer-user-id');
                      if(customerUserIdSpan) {
                        customerUserIdSpan.textContent = user.uid;
                      }
-                     return;
+                     return; // Don't redirect, the button click handler already handled it
                 }
                 const userEmail = user.email;
                 if (userEmail === 'admin@nsa.com') {
