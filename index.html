@@ -1206,8 +1206,7 @@
             document.getElementById('tracking-result').classList.add('hidden');
             document.getElementById('tracking-error').classList.add('hidden');
             try {
-                const docRef = doc(db, `artifacts/${appId}/public/data/orders`, orderId);
-                const docSnap = await getDoc(docRef);
+                const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/orders`, orderId));
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     document.getElementById('result-order-id').textContent = orderId;
