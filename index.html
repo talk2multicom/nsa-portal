@@ -870,6 +870,13 @@
                 publicPage.classList.remove('hidden');
             }
         }
+
+        // Utility function for safe timestamp formatting
+        function toLocalStringSafe(ts) {
+            if (!ts) return 'N/A';
+            const d = ts.toDate ? ts.toDate() : (ts instanceof Date ? ts : null);
+            return d ? d.toLocaleString() : 'N/A';
+        }
         
         // --- Authentication Logic ---
         function requireAuthOrModal() {
