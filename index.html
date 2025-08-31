@@ -158,7 +158,7 @@
                     <button id="admin-sign-out" class="text-sm text-teal-600 hover:underline">Sign Out</button>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl">
+            <div id="admin-container" class="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl">
                 <div class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
                     <button id="admin-overview-tab" class="tab-button active">Overview</button>
                     <button id="admin-inventory-tab" class="tab-button">Inventory</button>
@@ -498,7 +498,7 @@
                     <button id="staff-sign-out" class="text-sm text-teal-600 hover:underline">Sign Out</button>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
+            <div id="staff-container" class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
                 <div class="flex justify-center space-x-2 mb-8">
                     <button id="staff-inventory-tab" class="tab-button active">Inventory</button>
                     <button id="staff-sales-tab" class="tab-button">Sales</button>
@@ -622,13 +622,13 @@
                     <button id="show-login-portal" class="text-sm text-teal-600 hover:underline">Internal Sign-in</button>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl">
+            <div id="public-container" class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl">
                 <div class="flex justify-center space-x-2 md:space-x-4 mb-8">
-                    <button id="marketplace-tab" class="tab-button active">Marketplace</button>
-                    <button id="order-tracking-tab" class="tab-button">Track Order</button>
-                    <button id="traceability-tab" class="tab-button">Traceability</button>
+                    <button id="public-marketplace-tab" class="tab-button active">Marketplace</button>
+                    <button id="public-order-tracking-tab" class="tab-button">Track Order</button>
+                    <button id="public-traceability-tab" class="tab-button">Traceability</button>
                 </div>
-                <div id="marketplace-panel" class="tab-content space-y-8">
+                <div id="public-marketplace-panel" class="tab-content space-y-8">
                     <div class="relative w-full h-96 rounded-xl overflow-hidden shadow-lg">
                         <img src="https://images.unsplash.com/photo-1579621970795-87facc2f976d?q=80&w=2000&auto=format&fit=crop" alt="Smart Agro" class="absolute inset-0 w-full h-full object-cover z-0 transition-transform duration-500 hover:scale-105">
                         <div class="relative z-10 flex flex-col items-center justify-center h-full text-white bg-black bg-opacity-40 p-4">
@@ -803,6 +803,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
@@ -821,18 +822,19 @@
         };
         
         // --- Firebase Initialization ---
-        let app, auth, db;
+        let app, auth, db, storage;
         try {
             app = firebase.initializeApp(firebaseConfig);
             auth = app.auth();
             db = app.firestore();
+            storage = app.storage();
             console.log('Firebase initialized successfully.');
         } catch (e) {
             console.error('Firebase initialization failed:', e);
             showModal('Initialization Error', 'Failed to initialize Firebase. Please check your configuration and network.');
         }
 
-        // --- UI State and Navigation ---
+        // --- UI & State Management ---
         const loadingPage = document.getElementById('loading-page');
         const loginPage = document.getElementById('login-page');
         const adminPage = document.getElementById('admin-page');
@@ -870,6 +872,14 @@
         }
         
         // --- Authentication Logic ---
+        function requireAuthOrModal() {
+            if (!auth.currentUser) {
+                showModal('Not signed in', 'Please sign in to continue.');
+                return false;
+            }
+            return true;
+        }
+
         auth.onAuthStateChanged(user => {
             loadingPage.classList.add('hidden');
             if (user) {
@@ -877,17 +887,26 @@
                     const customerUserIdSpan = document.getElementById('customer-user-id');
                     if(customerUserIdSpan) customerUserIdSpan.textContent = user.uid;
                     showPage('public');
-                } else if (user.email === 'admin@nsa.com') {
-                    const adminUserIdSpan = document.getElementById('admin-user-id');
-                    if(adminUserIdSpan) adminUserIdSpan.textContent = user.uid;
-                    showPage('admin');
-                } else if (user.email === 'staff@nsa.com') {
-                    const staffUserIdSpan = document.getElementById('staff-user-id');
-                    if(staffUserIdSpan) staffUserIdSpan.textContent = user.uid;
-                    showPage('staff');
                 } else {
-                    auth.signOut();
-                    showModal('Access Denied', 'Your account does not have access to an internal portal.');
+                    user.getIdTokenResult(true).then(token => {
+                        const role = token.claims.role;
+                        if (role === 'admin') {
+                            const adminUserIdSpan = document.getElementById('admin-user-id');
+                            if(adminUserIdSpan) adminUserIdSpan.textContent = user.uid;
+                            showPage('admin');
+                        } else if (role === 'staff') {
+                            const staffUserIdSpan = document.getElementById('staff-user-id');
+                            if(staffUserIdSpan) staffUserIdSpan.textContent = user.uid;
+                            showPage('staff');
+                        } else {
+                            auth.signOut();
+                            showModal('Access Denied', 'Your account does not have a role assigned.');
+                        }
+                    }).catch(error => {
+                        console.error("Failed to get ID token claims:", error);
+                        auth.signOut();
+                        showModal('Access Denied', 'Failed to retrieve your account information. Please try again.');
+                    });
                 }
             } else {
                 showPage('login');
@@ -919,10 +938,11 @@
 
         // --- Admin Dashboard Logic ---
         const adminTabs = ['overview', 'inventory', 'sales', 'incidents', 'traceability', 'training', 'regulator', 'warehouse', 'assets', 'reports', 'tasks', 'orders', 'ble-tracking'];
+        const adminContainer = document.getElementById('admin-page');
         adminTabs.forEach(tab => {
             document.getElementById(`admin-${tab}-tab`).onclick = () => {
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                adminContainer.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                adminContainer.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
                 document.getElementById(`admin-${tab}-tab`).classList.add('active');
                 document.getElementById(`admin-${tab}-panel`).classList.remove('hidden');
             };
@@ -931,6 +951,7 @@
         let salesData = [];
         let incidentsData = [];
         let deliveriesData = [];
+        let ordersData = []; // Added ordersData array
 
         function updateAdminAnalytics() {
             const mortalityRateThreshold = 0.005; // 0.5%
@@ -985,7 +1006,7 @@
             `;
         };
         window.updateOrderStatus = async (orderId) => {
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const selectElement = document.getElementById(`status-update-${orderId}`);
             const newStatus = selectElement.value;
             const orderRef = db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId);
@@ -1043,8 +1064,8 @@
         };
         
         db.collection(`artifacts/${appId}/public/data/orders`).onSnapshot(snapshot => {
-            salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAdminList(salesData, 'admin-orders-list', renderAdminOrder);
+            ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderAdminList(ordersData, 'admin-orders-list', renderAdminOrder);
             updateAdminAnalytics();
         });
         db.collection(`artifacts/${appId}/public/data/incidents`).onSnapshot(snapshot => {
@@ -1107,17 +1128,18 @@
                     <span class="font-bold text-gray-800">${log.deviceName}</span>
                     <span class="text-sm text-gray-500">User ID: ${log.userId}</span>
                     <span class="text-xs text-gray-400">Lat/Lng: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}</span>
-                    <span class="text-xs text-gray-400">Timestamp: ${log.timestamp ? new Date(log.timestamp.toDate()).toLocaleString() : 'N/A'}</span>
+                    <span class="text-xs text-gray-400">Timestamp: ${toLocalStringSafe(log.timestamp)}</span>
                 </div>
             `).join('');
         });
 
         // --- Staff App Logic ---
         const staffTabs = ['inventory', 'sales', 'incidents', 'assets', 'tasks'];
+        const staffContainer = document.getElementById('staff-page');
         staffTabs.forEach(tab => {
             document.getElementById(`staff-${tab}-tab`).onclick = () => {
-                document.querySelectorAll('#staff-page .tab-button').forEach(btn => btn.classList.remove('active'));
-                document.querySelectorAll('#staff-page .tab-content').forEach(content => content.classList.add('hidden'));
+                staffContainer.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                staffContainer.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
                 document.getElementById(`staff-${tab}-tab`).classList.add('active');
                 document.getElementById(`staff-${tab}-panel`).classList.remove('hidden');
             };
@@ -1176,7 +1198,7 @@
         };
 
         window.updateTaskStatus = async (taskId, newStatus) => {
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const taskRef = db.collection(`artifacts/${appId}/public/data/work_orders`).doc(taskId);
             try {
                 await taskRef.update({
@@ -1192,7 +1214,7 @@
 
         document.getElementById('inventory-form').onsubmit = async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const data = {
                 coopId: document.getElementById('coop-id').value,
                 itemType: document.getElementById('itemType').value,
@@ -1214,7 +1236,7 @@
 
         document.getElementById('sales-form').onsubmit = async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const data = {
                 saleItem: document.getElementById('saleItem').value,
                 saleQuantity: parseInt(document.getElementById('saleQuantity').value, 10),
@@ -1235,40 +1257,45 @@
 
         document.getElementById('incidents-form').onsubmit = async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
-            // Note: Firebase Storage would be needed for actual photo upload. This is simulated.
+            if (!requireAuthOrModal()) return;
             const photoFile = document.getElementById('incidentPhoto').files[0];
-            const photoUrl = photoFile ? `https://storage.googleapis.com/your-bucket/incidents/${Date.now()}_${photoFile.name}` : null;
-            const data = {
-                incidentType: document.getElementById('incidentType').value,
-                incidentTitle: document.getElementById('incidentTitle').value,
-                incidentNotes: document.getElementById('incidentNotes').value,
-                photoUrl: photoUrl,
-                status: 'Pending',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: auth.currentUser.uid
-            };
+            let photoUrl = null;
             try {
+                if (photoFile) {
+                    const r = storage.ref(`incidents/${Date.now()}_${photoFile.name}`);
+                    await r.put(photoFile);
+                    photoUrl = await r.getDownloadURL();
+                }
+                const data = {
+                    incidentType: document.getElementById('incidentType').value,
+                    incidentTitle: document.getElementById('incidentTitle').value,
+                    incidentNotes: document.getElementById('incidentNotes').value,
+                    photoUrl,
+                    status: 'Pending',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId: auth.currentUser.uid
+                };
                 await db.collection(`artifacts/${appId}/users/${auth.currentUser.uid}/incidents`).add(data);
-                showModal('Success!', 'Incident reported successfully. Photo upload simulated.');
+                showModal('Success!', 'Incident reported successfully.');
                 document.getElementById('incidents-form').reset();
             } catch (error) {
                 console.error("Error reporting incident: ", error);
-                showModal('Error', 'Failed to report incident. Please check the console.');
+                showModal('Error', 'Failed to report incident. Check your Firebase Storage rules.');
             }
         };
 
         // --- Public Portal Logic ---
-        document.getElementById('marketplace-tab').onclick = () => {
+        document.getElementById('public-marketplace-tab').onclick = () => {
             showPublicTab('marketplace');
             document.getElementById('order-form-container').classList.add('hidden');
         };
-        document.getElementById('order-tracking-tab').onclick = () => showPublicTab('order-tracking');
-        document.getElementById('traceability-tab').onclick = () => showPublicTab('traceability');
+        document.getElementById('public-order-tracking-tab').onclick = () => showPublicTab('order-tracking');
+        document.getElementById('public-traceability-tab').onclick = () => showPublicTab('traceability');
 
+        const publicContainer = document.getElementById('public-page');
         function showPublicTab(tab) {
-            document.querySelectorAll('#public-page .tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('#public-page .tab-content').forEach(content => content.classList.add('hidden'));
+            publicContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            publicContainer.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
             document.getElementById(`public-${tab}-tab`).classList.add('active');
             document.getElementById(`public-${tab}-panel`).classList.remove('hidden');
         }
@@ -1293,8 +1320,8 @@
                 quantity: parseInt(document.getElementById('quantity').value, 10),
                 paymentMethod: document.getElementById('paymentMethod').value,
                 status: 'Pending',
-                deliveryHistory: [{ status: 'Order Submitted', timestamp: new Date() }],
-                timestamp: new Date()
+                deliveryHistory: [{ status: 'Order Submitted', timestamp: firebase.firestore.FieldValue.serverTimestamp() }],
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
             try {
                 const docRef = await db.collection(`artifacts/${appId}/public/data/orders`).add(orderData);
@@ -1341,7 +1368,7 @@
                     if (data.deliveryHistory && data.deliveryHistory.length > 0) {
                         data.deliveryHistory.forEach(step => {
                             const li = document.createElement('li');
-                            li.textContent = `${step.timestamp.toDate().toLocaleString()}: ${step.status}`;
+                            li.textContent = `${toLocalStringSafe(step.timestamp)}: ${step.status}`;
                             historyList.appendChild(li);
                         });
                     } else {
@@ -1360,15 +1387,15 @@
         // --- Traceability Logic ---
         document.getElementById('batch-generator-form').onsubmit = async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const formData = new FormData(document.getElementById('batch-generator-form'));
             const data = Object.fromEntries(formData.entries());
             data.timestamp = firebase.firestore.FieldValue.serverTimestamp();
             data.userId = auth.currentUser.uid;
             
             const hashString = `${data.coopId}-${data.birdCount}-${data.feedType}-${new Date().toISOString()}-${Math.random()}`;
-            data.traceabilityHash = crypto.subtle ? 
-                await crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashString))
+            data.traceabilityHash = window.crypto.subtle ? 
+                await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashString))
                 .then(buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('')) :
                 'simulated_hash_' + Math.random().toString(36).substring(2, 15);
             
@@ -1426,7 +1453,7 @@
         // --- New Warehouse Forms Logic ---
         document.getElementById('warehouse-delivery-form').onsubmit = async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const data = {
                 itemName: document.getElementById('warehouse-item-name').value,
                 itemType: document.getElementById('warehouse-item-type').value,
@@ -1454,7 +1481,7 @@
 
         document.getElementById('dispatch-form').onsubmit = async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const itemName = document.getElementById('dispatch-item-name').value;
             const quantity = parseInt(document.getElementById('dispatch-quantity').value, 10);
             const staffUid = document.getElementById('dispatch-staff-uid').value;
@@ -1485,41 +1512,37 @@
         
         // Report Generation Logic
         document.getElementById('download-pdf-report').onclick = () => {
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const doc = new jsPDF();
             doc.text("NSA Ecosystem Report", 10, 10);
             doc.setFontSize(12);
             doc.text(`Generated: ${new Date().toLocaleDateString()}`, 10, 20);
 
-            let y = 30;
-            doc.text("Sales Summary", 10, y += 10);
-            const salesTable = salesData.map(sale => [
-                sale.id, sale.saleItem, sale.saleQuantity, `GHS ${sale.salePrice.toFixed(2)}`,
-                sale.timestamp ? new Date(sale.timestamp.toDate()).toLocaleDateString() : 'N/A'
+            const salesTable = salesData.map(s => [
+                s.id, s.saleItem, s.saleQuantity, `GHS ${(Number(s.salePrice)||0).toFixed(2)}`,
+                toLocalStringSafe(s.timestamp)
             ]);
-            doc.autoTable({ startY: y + 5, head: [['ID', 'Item', 'Quantity', 'Revenue', 'Date']], body: salesTable });
+            doc.autoTable({ startY: 30, head: [['ID','Item','Qty','Revenue','Date']], body: salesTable });
 
-            y = doc.autoTable.previous.finalY + 10;
-            doc.text("Incident Summary", 10, y);
-            const incidentsTable = incidentsData.map(incident => [
-                incident.id, incident.incidentTitle, incident.incidentType, incident.status,
-                incident.timestamp ? new Date(incident.timestamp.toDate()).toLocaleDateString() : 'N/A'
+            const y = doc.lastAutoTable.finalY + 10;
+            const incidentsTable = incidentsData.map(i => [
+                i.id, i.incidentTitle, i.incidentType, i.status, toLocalStringSafe(i.timestamp)
             ]);
-            doc.autoTable({ startY: y + 5, head: [['ID', 'Title', 'Type', 'Status', 'Date']], body: incidentsTable });
-
+            doc.autoTable({ startY: y, head: [['ID','Title','Type','Status','Date']], body: incidentsTable });
+            
             doc.save("NSA_Report.pdf");
             showModal('Download Complete', 'PDF report has been generated and downloaded.');
         };
 
         document.getElementById('download-excel-report').onclick = () => {
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            if (!requireAuthOrModal()) return;
             const reportData = [
                 ["NSA Ecosystem Report"], [`Generated: ${new Date().toLocaleDateString()}`], [],
                 ["Sales Summary"], ["ID", "Item", "Quantity", "Revenue", "Date"],
-                ...salesData.map(sale => [sale.id, sale.saleItem, sale.saleQuantity, sale.salePrice, sale.timestamp ? new Date(sale.timestamp.toDate()).toLocaleDateString() : 'N/A']),
+                ...salesData.map(sale => [sale.id, sale.saleItem, sale.saleQuantity, sale.salePrice, toLocalStringSafe(sale.timestamp)]),
                 [],
                 ["Incident Summary"], ["ID", "Title", "Type", "Status", "Date"],
-                ...incidentsData.map(incident => [incident.id, incident.incidentTitle, incident.incidentType, incident.status, incident.timestamp ? new Date(incident.timestamp.toDate()).toLocaleDateString() : 'N/A'])
+                ...incidentsData.map(incident => [incident.id, incident.incidentTitle, incident.incidentType, incident.status, toLocalStringSafe(incident.timestamp)])
             ];
             const ws = XLSX.utils.aoa_to_sheet(reportData);
             const wb = XLSX.utils.book_new();
@@ -1528,21 +1551,22 @@
             showModal('Download Complete', 'Excel report has been generated and downloaded.');
         };
         
-        document.getElementById('simulate-ble-data').onclick = async () => {
-            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+        document.getElementById('simulate-ble-data').onclick = () => {
+            if (!requireAuthOrModal()) return;
             const mockStaff = [{ id: "staff1", name: "Nana Yaw" }, { id: "staff2", name: "Aisha" }, { id: "staff3", name: "Kofi Mensah" }];
             const randomStaff = mockStaff[Math.floor(Math.random() * mockStaff.length)];
             const randomLat = 5.6148 + (Math.random() - 0.5) * 0.05;
             const randomLng = -0.1869 + (Math.random() - 0.5) * 0.05;
-            try {
-                await db.collection(`artifacts/${appId}/public/data/ble_logs`).add({
-                    deviceName: `${randomStaff.name}'s ID Card`, userId: randomStaff.id, latitude: randomLat, longitude: randomLng, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
+            db.collection(`artifacts/${appId}/public/data/ble_logs`).add({
+                deviceName: `${randomStaff.name}'s ID Card`, userId: randomStaff.id, latitude: randomLat, longitude: randomLng, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
                 showModal('BLE Log Simulated', `A new BLE location log for ${randomStaff.name} has been added.`);
-            } catch (error) {
+            })
+            .catch(error => {
                 console.error('Error simulating BLE data:', error);
                 showModal('Error', 'Failed to simulate BLE data.');
-            }
+            });
         };
     </script>
 </body>
