@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NSA Ecosystem Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:;">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
@@ -802,14 +803,16 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-        import { getFirestore, addDoc, collection, doc, getDoc, onSnapshot, query, where, serverTimestamp, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-        
-        // Libraries for PDF and Excel generation from CDNs
-        import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
-        import "https://unpkg.com/xlsx/dist/xlsx.full.min.js";
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        // Use standard global libraries for better compatibility
         
         // Constants
         const appId = 'nsa-miot';
@@ -826,9 +829,9 @@
         // Firebase initialization
         let app, auth, db;
         try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
             console.log('Firebase initialized successfully.');
         } catch (e) {
             console.error('Firebase initialization failed:', e);
@@ -840,15 +843,15 @@
         const adminPage = document.getElementById('admin-page');
         const staffPage = document.getElementById('staff-page');
         const publicPage = document.getElementById('public-page');
+        const loadingPage = document.getElementById('loading-page');
 
         function showPage(pageName) {
-            // Hide all pages first
             loginPage.classList.add('hidden');
             adminPage.classList.add('hidden');
             staffPage.classList.add('hidden');
             publicPage.classList.add('hidden');
-            
-            // Show only the requested page
+            if (loadingPage) loadingPage.classList.add('hidden');
+
             if (pageName === 'login') {
                 loginPage.classList.remove('hidden');
             } else if (pageName === 'admin') {
@@ -859,21 +862,24 @@
                 publicPage.classList.remove('hidden');
             }
         }
-
+        
         // --- Authentication & Redirection ---
-        onAuthStateChanged(auth, (user) => {
+        auth.onAuthStateChanged(user => {
             if (user) {
                 if (user.isAnonymous) {
-                    document.getElementById('customer-user-id').textContent = user.uid;
+                    const customerUserIdSpan = document.getElementById('customer-user-id');
+                    if(customerUserIdSpan) customerUserIdSpan.textContent = user.uid;
                     showPage('public');
                 } else if (user.email === 'admin@nsa.com') {
-                    document.getElementById('admin-user-id').textContent = user.uid;
+                    const adminUserIdSpan = document.getElementById('admin-user-id');
+                    if(adminUserIdSpan) adminUserIdSpan.textContent = user.uid;
                     showPage('admin');
                 } else if (user.email === 'staff@nsa.com') {
-                    document.getElementById('staff-user-id').textContent = user.uid;
+                    const staffUserIdSpan = document.getElementById('staff-user-id');
+                    if(staffUserIdSpan) staffUserIdSpan.textContent = user.uid;
                     showPage('staff');
                 } else {
-                    signOut(auth);
+                    auth.signOut();
                     showModal('Access Denied', 'Your account does not have access to an internal portal.');
                     showPage('login');
                 }
@@ -887,7 +893,7 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             try {
-                await signInWithEmailAndPassword(auth, email, password);
+                await auth.signInWithEmailAndPassword(email, password);
             } catch (error) {
                 console.error("Login failed:", error);
                 showModal('Login Failed', 'Invalid email or password. Please try again.');
@@ -895,9 +901,9 @@
         });
 
         document.getElementById('google-login-button').onclick = async () => {
-            const provider = new GoogleAuthProvider();
+            const provider = new firebase.auth.GoogleAuthProvider();
             try {
-                await signInWithPopup(auth, provider);
+                await auth.signInWithPopup(provider);
             } catch (error) {
                 console.error("Google login failed:", error);
                 showModal('Google Login Failed', 'There was an error with Google sign-in. Please try again.');
@@ -905,17 +911,15 @@
         };
 
         document.getElementById('show-public-portal').onclick = () => {
-            signInAnonymously(auth).then(() => {
-                // onAuthStateChanged will handle the rest
-            }).catch(error => {
+            auth.signInAnonymously().catch(error => {
                 console.error('Anonymous sign-in failed:', error);
                 showModal('Authentication Failed', 'Could not sign in to the public portal.');
             });
         };
 
-        document.getElementById('admin-sign-out').onclick = () => signOut(auth);
-        document.getElementById('staff-sign-out').onclick = () => signOut(auth);
-        document.getElementById('show-login-portal').onclick = () => signOut(auth);
+        document.getElementById('admin-sign-out').onclick = () => auth.signOut();
+        document.getElementById('staff-sign-out').onclick = () => auth.signOut();
+        document.getElementById('show-login-portal').onclick = () => auth.signOut();
 
         // --- Admin Dashboard Logic ---
         const adminTabs = ['overview', 'inventory', 'sales', 'incidents', 'traceability', 'training', 'regulator', 'warehouse', 'assets', 'reports', 'tasks', 'orders', 'ble-tracking'];
@@ -934,7 +938,12 @@
 
         function updateAdminAnalytics() {
             const mortalityCount = incidentsData.filter(i => i.incidentType === 'mortality').length;
-            const mortalityTrend = mortalityCount > 5 ? 'High mortality detected. Immediate action required.' : 'Mortality is within normal range.';
+            const mortalityRateThreshold = 0.005; // 0.5%
+            const totalBirds = deliveriesData.filter(i => i.itemType === 'birds').reduce((sum, item) => sum + item.quantity, 0);
+            const mortalityTrend = totalBirds > 0 && (mortalityCount / totalBirds) > mortalityRateThreshold
+                ? 'High mortality detected. Immediate action required.'
+                : 'Mortality is within normal range.';
+            
             const totalFeedQuantity = deliveriesData.filter(i => i.itemType === 'feed').reduce((sum, item) => sum + item.quantity, 0);
             const feedForecast = `Total feed logged: ${totalFeedQuantity} units. Forecast pending.`;
             const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.salePrice || 0), 0);
@@ -954,36 +963,118 @@
             const container = document.getElementById(containerId);
             container.innerHTML = items.length ? items.map(item => renderer(item)).join('') : `<p class="text-center text-gray-500">No data found.</p>`;
         }
+
+        const renderAdminOrder = (order) => {
+            const statusColor = order.status === 'Delivered' ? 'bg-green-100 text-green-700' : (order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700');
+            return `
+            <div class="dashboard-card flex flex-col items-start">
+                <div class="flex justify-between w-full">
+                    <span class="text-lg font-bold text-gray-800">Order ID: ${order.id}</span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${order.status}</span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Customer: ${order.customerName} (${order.customerEmail})</p>
+                <p class="text-sm text-gray-500">Product: ${order.product} (${order.quantity})</p>
+                <p class="text-sm text-gray-500">Payment: ${order.paymentMethod}</p>
+                <div class="mt-4 w-full">
+                    <label for="status-update-${order.id}" class="block text-sm font-medium text-gray-700 mb-2">Update Status</label>
+                    <select id="status-update-${order.id}" class="w-full">
+                        <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                        <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
+                        <option value="Out for Delivery" ${order.status === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
+                        <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                    </select>
+                    <button onclick="updateOrderStatus('${order.id}')" class="gradient-button mt-2 w-full text-sm py-2">Update</button>
+                </div>
+            </div>
+            `;
+        };
+        window.updateOrderStatus = async (orderId) => {
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            const selectElement = document.getElementById(`status-update-${orderId}`);
+            const newStatus = selectElement.value;
+            const orderRef = db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId);
+            try {
+                const docSnap = await orderRef.get();
+                const currentHistory = docSnap.data().deliveryHistory || [];
+                const newHistory = [...currentHistory, { status: newStatus, timestamp: firebase.firestore.FieldValue.serverTimestamp() }];
+                await orderRef.update({
+                    status: newStatus,
+                    deliveryHistory: newHistory
+                });
+                showModal('Success!', `Order ${orderId} status updated to ${newStatus}.`);
+            } catch (error) {
+                console.error("Error updating order status:", error);
+                showModal('Error', 'Failed to update order status. Please try again.');
+            }
+        };
+
+        const renderAdminInventory = (item) => `
+            <div class="list-item">
+                <span class="text-sm font-medium text-gray-700">${item.itemName} (${item.itemType})</span>
+                <span class="text-gray-500 text-sm">${item.quantity} units</span>
+            </div>
+        `;
+        const renderAdminSale = (item) => `
+            <div class="list-item">
+                <span class="text-sm font-medium text-gray-700">${item.saleItem}</span>
+                <span class="text-emerald-600 font-bold text-sm">GHS ${item.salePrice.toFixed(2)}</span>
+            </div>
+        `;
+        const renderAdminIncident = (item) => {
+            const statusColor = item.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+            return `
+            <div class="list-item flex-col items-start space-y-1">
+                <div class="flex justify-between w-full">
+                    <span class="text-sm font-medium text-gray-700">${item.incidentTitle}</span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${item.status || 'Pending'}</span>
+                </div>
+                <p class="text-gray-500 text-xs">${item.incidentNotes}</p>
+            </div>
+            `;
+        };
+        const renderAdminTask = (task) => {
+            const statusColor = task.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
+            return `
+            <div class="list-item flex-col items-start space-y-1">
+                <div class="flex justify-between w-full">
+                    <span class="text-sm font-medium text-gray-700">${task.title}</span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${task.status || 'Assigned'}</span>
+                </div>
+                <p class="text-gray-500 text-xs">${task.description}</p>
+                <p class="text-xs text-gray-400">Assigned to: ${task.assignedTo}</p>
+            </div>
+            `;
+        };
         
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/orders`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/orders`).onSnapshot(snapshot => {
             salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderAdminList(salesData, 'admin-orders-list', renderAdminOrder);
             updateAdminAnalytics();
         });
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/incidents`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/incidents`).onSnapshot(snapshot => {
             incidentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderAdminList(incidentsData, 'admin-incidents-list', renderAdminIncident);
             renderAdminList(incidentsData, 'regulator-incidents', renderAdminIncident);
             updateAdminAnalytics();
         });
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/warehouse_deliveries`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/warehouse_deliveries`).onSnapshot(snapshot => {
             deliveriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             updateAdminAnalytics();
         });
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/sales`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/sales`).onSnapshot(snapshot => {
             salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderAdminList(salesData, 'admin-sales-list', renderAdminSale);
             updateAdminAnalytics();
         });
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/inventory`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/inventory`).onSnapshot(snapshot => {
             const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderAdminList(logs, 'admin-inventory-list', renderAdminInventory);
         });
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/batches`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/batches`).onSnapshot(snapshot => {
             const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             document.getElementById('regulator-traceability').innerHTML = logs.map(log => `<div class="list-item flex-col items-start"><p class="font-medium">Batch ID: ${log.id}</p><p class="text-xs">Coop: ${log.coopId}, Birds: ${log.birdCount}</p></div>`).join('');
         });
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/assets`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/assets`).onSnapshot(snapshot => {
             const assets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             document.getElementById('admin-asset-list').innerHTML = assets.map(asset => `
                 <div class="list-item flex-col items-start">
@@ -995,7 +1086,7 @@
             `).join('');
         });
         
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/warehouse_stock`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/warehouse_stock`).onSnapshot(snapshot => {
             const stockItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const stockListHtml = stockItems.map(item => `
                 <div class="list-item">
@@ -1008,12 +1099,12 @@
             dispatchDropdown.innerHTML = '<option value="">-- Select an item --</option>' + stockItems.map(item => `<option value="${item.id}">${item.itemName} (${item.quantity} in stock)</option>`).join('');
         });
         
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/work_orders`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/work_orders`).onSnapshot(snapshot => {
             const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderAdminList(tasks, 'admin-task-list', renderAdminTask);
         });
 
-        onSnapshot(collection(db, `artifacts/${appId}/public/data/ble_logs`), (snapshot) => {
+        db.collection(`artifacts/${appId}/public/data/ble_logs`).onSnapshot(snapshot => {
             const bleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             document.getElementById('ble-tracking-list').innerHTML = bleLogs.map(log => `
                 <div class="list-item flex-col items-start">
@@ -1036,10 +1127,9 @@
             };
         });
 
-        onAuthStateChanged(auth, user => {
+        auth.onAuthStateChanged(user => {
             if (user && !user.isAnonymous) {
-                const inventoryRef = collection(db, `artifacts/${appId}/users/${user.uid}/inventory`);
-                onSnapshot(query(inventoryRef), (snapshot) => {
+                db.collection(`artifacts/${appId}/users/${user.uid}/inventory`).onSnapshot(snapshot => {
                     const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderStaffList(logs, 'recent-inventory-list', log => `
                         <div class="bg-gray-50 rounded-lg p-3 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -1051,8 +1141,7 @@
                         </div>
                     `);
                 });
-                const assetsRef = collection(db, `artifacts/${appId}/public/data/assets`);
-                onSnapshot(query(assetsRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                db.collection(`artifacts/${appId}/public/data/assets`).where('assignedTo', '==', user.uid).onSnapshot(snapshot => {
                     const assets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderStaffList(assets, 'staff-asset-list', asset => `
                         <div class="dashboard-card flex flex-col items-start">
@@ -1063,8 +1152,7 @@
                         </div>
                     `);
                 });
-                const tasksRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
-                onSnapshot(query(tasksRef, where('assignedTo', '==', user.uid)), (snapshot) => {
+                db.collection(`artifacts/${appId}/public/data/work_orders`).where('assignedTo', '==', user.uid).onSnapshot(snapshot => {
                     const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderStaffList(tasks, 'staff-task-list', renderStaffTask);
                 });
@@ -1092,11 +1180,12 @@
         };
 
         window.updateTaskStatus = async (taskId, newStatus) => {
-            const taskRef = doc(db, `artifacts/${appId}/public/data/work_orders`, taskId);
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            const taskRef = db.collection(`artifacts/${appId}/public/data/work_orders`).doc(taskId);
             try {
-                await updateDoc(taskRef, {
+                await taskRef.update({
                     status: newStatus,
-                    completedAt: serverTimestamp()
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 showModal('Success!', 'Task status updated successfully.');
             } catch (error) {
@@ -1107,17 +1196,18 @@
 
         document.getElementById('inventory-form').onsubmit = async (e) => {
             e.preventDefault();
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
             const data = {
                 coopId: document.getElementById('coop-id').value,
                 itemType: document.getElementById('itemType').value,
                 itemName: document.getElementById('itemName').value,
                 quantity: parseInt(document.getElementById('quantity').value, 10),
                 deliveryNotes: document.getElementById('deliveryNotes').value,
-                timestamp: serverTimestamp(),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 userId: auth.currentUser.uid
             };
             try {
-                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/inventory`), data);
+                await db.collection(`artifacts/${appId}/users/${auth.currentUser.uid}/inventory`).add(data);
                 showModal('Success!', 'Inventory logged successfully.');
                 document.getElementById('inventory-form').reset();
             } catch (error) {
@@ -1128,16 +1218,17 @@
 
         document.getElementById('sales-form').onsubmit = async (e) => {
             e.preventDefault();
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
             const data = {
                 saleItem: document.getElementById('saleItem').value,
                 saleQuantity: parseInt(document.getElementById('saleQuantity').value, 10),
                 salePrice: parseFloat(document.getElementById('salePrice').value),
                 saleNotes: document.getElementById('saleNotes').value,
-                timestamp: serverTimestamp(),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 userId: auth.currentUser.uid
             };
             try {
-                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/sales`), data);
+                await db.collection(`artifacts/${appId}/users/${auth.currentUser.uid}/sales`).add(data);
                 showModal('Success!', 'Sales logged successfully.');
                 document.getElementById('sales-form').reset();
             } catch (error) {
@@ -1148,6 +1239,8 @@
 
         document.getElementById('incidents-form').onsubmit = async (e) => {
             e.preventDefault();
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
+            // Note: Firebase Storage would be needed for actual photo upload. This is simulated.
             const photoFile = document.getElementById('incidentPhoto').files[0];
             const photoUrl = photoFile ? `https://storage.googleapis.com/your-bucket/incidents/${Date.now()}_${photoFile.name}` : null;
             const data = {
@@ -1156,11 +1249,11 @@
                 incidentNotes: document.getElementById('incidentNotes').value,
                 photoUrl: photoUrl,
                 status: 'Pending',
-                timestamp: serverTimestamp(),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 userId: auth.currentUser.uid
             };
             try {
-                await addDoc(collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/incidents`), data);
+                await db.collection(`artifacts/${appId}/users/${auth.currentUser.uid}/incidents`).add(data);
                 showModal('Success!', 'Incident reported successfully. Photo upload simulated.');
                 document.getElementById('incidents-form').reset();
             } catch (error) {
@@ -1208,7 +1301,7 @@
                 timestamp: new Date()
             };
             try {
-                const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/orders`), orderData);
+                const docRef = await db.collection(`artifacts/${appId}/public/data/orders`).add(orderData);
                 const orderId = docRef.id;
                 showModal('Order Submitted!', `Your order has been placed. Your Order ID is: <strong class="text-teal-600">${orderId}</strong>. Use this to track your order.`)
                 document.getElementById('order-form').reset();
@@ -1228,8 +1321,8 @@
             document.getElementById('tracking-result').classList.add('hidden');
             document.getElementById('tracking-error').classList.add('hidden');
             try {
-                const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/orders`, orderId));
-                if (docSnap.exists()) {
+                const docSnap = await db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId).get();
+                if (docSnap.exists) {
                     const data = docSnap.data();
                     document.getElementById('result-order-id').textContent = orderId;
                     document.getElementById('result-product').textContent = data.product;
@@ -1271,23 +1364,24 @@
         // --- Traceability Logic ---
         document.getElementById('batch-generator-form').onsubmit = async (e) => {
             e.preventDefault();
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
             const formData = new FormData(document.getElementById('batch-generator-form'));
             const data = Object.fromEntries(formData.entries());
-            data.timestamp = serverTimestamp();
+            data.timestamp = firebase.firestore.FieldValue.serverTimestamp();
             data.userId = auth.currentUser.uid;
             
             const hashString = `${data.coopId}-${data.birdCount}-${data.feedType}-${new Date().toISOString()}-${Math.random()}`;
-            data.blockchainHash = crypto.subtle ? 
+            data.traceabilityHash = crypto.subtle ? 
                 await crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashString))
                 .then(buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('')) :
                 'simulated_hash_' + Math.random().toString(36).substring(2, 15);
             
             try {
-                const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/batches`), data);
+                const docRef = await db.collection(`artifacts/${appId}/public/data/batches`).add(data);
                 const batchId = docRef.id;
                 document.getElementById('generated-batch-id').textContent = batchId;
                 document.getElementById('generated-qr-code').classList.remove('hidden');
-                showModal('Batch Generated!', `A new batch has been logged. The Batch ID is: <strong class="text-teal-600">${batchId}</strong>. This ID is linked to the blockchain hash for traceability.`);
+                showModal('Batch Generated!', `A new batch has been logged. The Batch ID is: <strong class="text-teal-600">${batchId}</strong>. This ID is linked to the traceability hash.`);
                 document.getElementById('batch-generator-form').reset();
             } catch (error) {
                 console.error("Error adding batch document: ", error);
@@ -1314,14 +1408,14 @@
             document.getElementById('validation-result').classList.add('hidden');
             document.getElementById('validation-error').classList.add('hidden');
             try {
-                const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/batches`, batchId));
-                if (docSnap.exists()) {
+                const docSnap = await db.collection(`artifacts/${appId}/public/data/batches`).doc(batchId).get();
+                if (docSnap.exists) {
                     const data = docSnap.data();
                     document.getElementById('result-batch-id').textContent = batchId;
                     document.getElementById('result-coop-id').textContent = data.coopId;
                     document.getElementById('result-bird-count').textContent = data.birdCount;
                     document.getElementById('result-feed-type').textContent = data.feedType;
-                    document.getElementById('result-blockchain-hash').textContent = data.blockchainHash;
+                    document.getElementById('result-blockchain-hash').textContent = data.traceabilityHash;
                     document.getElementById('result-batch-notes').textContent = data.batchNotes;
                     document.getElementById('validation-result').classList.remove('hidden');
                 } else {
@@ -1348,22 +1442,23 @@
         // --- New Warehouse Forms Logic ---
         document.getElementById('warehouse-delivery-form').onsubmit = async (e) => {
             e.preventDefault();
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
             const data = {
                 itemName: document.getElementById('warehouse-item-name').value,
                 itemType: document.getElementById('warehouse-item-type').value,
                 quantity: parseInt(document.getElementById('warehouse-quantity').value, 10),
                 supplier: document.getElementById('warehouse-supplier').value,
-                timestamp: serverTimestamp(),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 adminId: auth.currentUser.uid
             };
             try {
-                await addDoc(collection(db, `artifacts/${appId}/public/data/warehouse_deliveries`), data);
-                const stockRef = doc(db, `artifacts/${appId}/public/data/warehouse_stock`, data.itemName);
-                const stockSnap = await getDoc(stockRef);
-                if (stockSnap.exists()) {
-                    await updateDoc(stockRef, { quantity: stockSnap.data().quantity + data.quantity, timestamp: serverTimestamp() });
+                await db.collection(`artifacts/${appId}/public/data/warehouse_deliveries`).add(data);
+                const stockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`).doc(data.itemName);
+                const stockSnap = await stockRef.get();
+                if (stockSnap.exists) {
+                    await stockRef.update({ quantity: stockSnap.data().quantity + data.quantity, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 } else {
-                    await setDoc(stockRef, { itemName: data.itemName, itemType: data.itemType, quantity: data.quantity, timestamp: serverTimestamp() });
+                    await stockRef.set({ itemName: data.itemName, itemType: data.itemType, quantity: data.quantity, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
                 showModal('Success!', 'Delivery logged and stock updated successfully.');
                 document.getElementById('warehouse-delivery-form').reset();
@@ -1375,6 +1470,7 @@
 
         document.getElementById('dispatch-form').onsubmit = async (e) => {
             e.preventDefault();
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
             const itemName = document.getElementById('dispatch-item-name').value;
             const quantity = parseInt(document.getElementById('dispatch-quantity').value, 10);
             const staffUid = document.getElementById('dispatch-staff-uid').value;
@@ -1384,17 +1480,17 @@
                 return;
             }
             try {
-                const stockRef = doc(db, `artifacts/${appId}/public/data/warehouse_stock`, itemName);
-                const stockSnap = await getDoc(stockRef);
-                if (!stockSnap.exists() || stockSnap.data().quantity < quantity) {
+                const stockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`).doc(itemName);
+                const stockSnap = await stockRef.get();
+                if (!stockSnap.exists || stockSnap.data().quantity < quantity) {
                     showModal('Dispatch Failed', 'Not enough stock available for this item.');
                     return;
                 }
-                await updateDoc(stockRef, { quantity: stockSnap.data().quantity - quantity, timestamp: serverTimestamp() });
-                const dispatchData = { itemName, quantity, staffUid, timestamp: serverTimestamp(), adminId: auth.currentUser.uid };
-                await addDoc(collection(db, `artifacts/${appId}/public/data/dispatches`), dispatchData);
-                const staffInventoryData = { itemName, itemType: stockSnap.data().itemType, quantity, coopId: 'Dispatch from Warehouse', deliveryNotes: `Dispatched from warehouse by admin ${auth.currentUser.uid}`, timestamp: serverTimestamp() };
-                await addDoc(collection(db, `artifacts/${appId}/users/${staffUid}/inventory`), staffInventoryData);
+                await stockRef.update({ quantity: stockSnap.data().quantity - quantity, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                const dispatchData = { itemName, quantity, staffUid, timestamp: firebase.firestore.FieldValue.serverTimestamp(), adminId: auth.currentUser.uid };
+                await db.collection(`artifacts/${appId}/public/data/dispatches`).add(dispatchData);
+                const staffInventoryData = { itemName, itemType: stockSnap.data().itemType, quantity, coopId: 'Dispatch from Warehouse', deliveryNotes: `Dispatched from warehouse by admin ${auth.currentUser.uid}`, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+                await db.collection(`artifacts/${appId}/users/${staffUid}/inventory`).add(staffInventoryData);
                 showModal('Dispatch Successful!', `${quantity} units of ${itemName} dispatched to staff member.`);
                 document.getElementById('dispatch-form').reset();
             } catch (error) {
@@ -1405,6 +1501,7 @@
         
         // Report Generation Logic
         document.getElementById('download-pdf-report').onclick = () => {
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
             const doc = new jsPDF();
             doc.text("NSA Ecosystem Report", 10, 10);
             doc.setFontSize(12);
@@ -1431,6 +1528,7 @@
         };
 
         document.getElementById('download-excel-report').onclick = () => {
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
             const reportData = [
                 ["NSA Ecosystem Report"], [`Generated: ${new Date().toLocaleDateString()}`], [],
                 ["Sales Summary"], ["ID", "Item", "Quantity", "Revenue", "Date"],
@@ -1447,13 +1545,14 @@
         };
         
         document.getElementById('simulate-ble-data').onclick = async () => {
+            if (!auth.currentUser) { showModal('Session Expired', 'Please sign in to continue.'); return; }
             const mockStaff = [{ id: "staff1", name: "Nana Yaw" }, { id: "staff2", name: "Aisha" }, { id: "staff3", name: "Kofi Mensah" }];
             const randomStaff = mockStaff[Math.floor(Math.random() * mockStaff.length)];
             const randomLat = 5.6148 + (Math.random() - 0.5) * 0.05;
             const randomLng = -0.1869 + (Math.random() - 0.5) * 0.05;
             try {
-                await addDoc(collection(db, `artifacts/${appId}/public/data/ble_logs`), {
-                    deviceName: `${randomStaff.name}'s ID Card`, userId: randomStaff.id, latitude: randomLat, longitude: randomLng, timestamp: serverTimestamp()
+                await db.collection(`artifacts/${appId}/public/data/ble_logs`).add({
+                    deviceName: `${randomStaff.name}'s ID Card`, userId: randomStaff.id, latitude: randomLat, longitude: randomLng, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 showModal('BLE Log Simulated', `A new BLE location log for ${randomStaff.name} has been added.`);
             } catch (error) {
