@@ -843,14 +843,12 @@
         const adminPage = document.getElementById('admin-page');
         const staffPage = document.getElementById('staff-page');
         const publicPage = document.getElementById('public-page');
-        const loadingPage = document.getElementById('loading-page');
 
         function showPage(pageName) {
             loginPage.classList.add('hidden');
             adminPage.classList.add('hidden');
             staffPage.classList.add('hidden');
             publicPage.classList.add('hidden');
-            if (loadingPage) loadingPage.classList.add('hidden');
 
             if (pageName === 'login') {
                 loginPage.classList.remove('hidden');
