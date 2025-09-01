@@ -127,7 +127,7 @@
         <div id="login-page" class="hidden w-full max-w-sm">
             <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm">
                 <h1 class="text-2xl font-bold text-center text-gray-800">NSA Ecosystem</h1>
-                <p class="text-center text-sm text-gray-500 mt-2">Sign in to access your portal.</p>
+                <p class="text-center text-sm text-gray-500 mt-2" id="login-form-title">Sign in to access your portal.</p>
                 <form id="login-form" class="mt-8 space-y-6">
                     <div>
                         <label for="email" class="block text-gray-700 font-medium mb-2">Email</label>
@@ -139,8 +139,20 @@
                     </div>
                     <button type="submit" id="login-button" class="gradient-button w-full">Sign In</button>
                 </form>
+                <form id="signup-form" class="mt-8 space-y-6 hidden">
+                    <div>
+                        <label for="signup-email" class="block text-gray-700 font-medium mb-2">Email</label>
+                        <input type="email" id="signup-email" name="email" placeholder="you@nsa.com" class="w-full" required>
+                    </div>
+                    <div>
+                        <label for="signup-password" class="block text-gray-700 font-medium mb-2">Password</label>
+                        <input type="password" id="signup-password" name="password" placeholder="••••••••" class="w-full" required>
+                    </div>
+                    <button type="submit" id="signup-button" class="gradient-button w-full">Sign Up</button>
+                </form>
                 <div class="mt-6 text-center text-sm text-gray-500">
-                    <p>Are you a customer or validator?</p>
+                    <p id="auth-toggle-prompt">Don't have an account? <a href="#" id="auth-toggle-link" class="text-teal-600 font-medium hover:underline">Sign up.</a></p>
+                    <p class="mt-2">Are you a customer or validator?</p>
                     <button id="show-public-portal" class="text-teal-600 font-medium hover:underline">
                         Access Public Portal
                     </button>
