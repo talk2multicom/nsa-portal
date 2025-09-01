@@ -1,1628 +1,761 @@
+<!--
+NSA Ecosystem Portal — Clean Ship + Roles Management
+Single-file deliverable including:
+1) Updated HTML/JS with fixes, role-based routing, Roles admin panel, Storage upload, PDF export fix, safer tab scoping
+2) Cloud Functions (Admin SDK) for setUserRole (callable) — embedded below as reference
+3) Firestore security rules sample — embedded below as reference
+
+Notes:
+- Replace firebaseConfig with your project values if different
+- Deploy Functions and Rules as shown in the comments
+- This is a drop-in replacement for your current index.html
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NSA Ecosystem Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://www.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:;">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
-        .gradient-button {
-            background: linear-gradient(135deg, #0d9488, #14b8a6);
-            color: white;
-            font-weight: 700;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        .gradient-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-        }
-        input, select, textarea {
-            background-color: #f1f5f9;
-            border: 1px solid #cbd5e0;
-            border-radius: 0.5rem;
-            padding: 0.75rem 1rem;
-            transition: all 0.2s ease-in-out;
-        }
-        input:focus, select:focus, textarea:focus {
-            border-color: #0d9488;
-            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
-            outline: none;
-        }
-        .tab-button {
-            flex: 1;
-            padding: 12px;
-            border-radius: 9999px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            text-align: center;
-        }
-        .tab-button.active {
-            background-color: #0d9488;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2), 0 2px 4px -1px rgba(13, 148, 136, 0.12);
-        }
-        .tab-button:not(.active) {
-            background-color: #e2e8f0;
-            color: #4a5568;
-        }
-        .tab-button:hover:not(.active) {
-            background-color: #cbd5e0;
-        }
-        .dashboard-card {
-            background-color: white;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            transition: transform 0.2s ease-in-out;
-        }
-        .stat-box {
-            background-color: #f0fdfa;
-            border: 1px solid #99f6e4;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            text-align: center;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .list-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-            transition: background-color 0.2s;
-        }
-        .list-item:hover { background-color: #f1f5f9; }
-        .list-item:last-child { border-bottom: none; }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: #fff;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-        }
-        .banner-image {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 0.75rem;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NSA Ecosystem Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background:#f7f9fc; }
+    .gradient-button{background:linear-gradient(135deg,#0d9488,#14b8a6);color:#fff;font-weight:700;padding:.75rem 1.5rem;border-radius:.5rem;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06)}
+    .gradient-button:hover{transform:translateY(-2px);box-shadow:0 6px 8px rgba(0,0,0,.15)}
+    input,select,textarea{background:#f1f5f9;border:1px solid #cbd5e0;border-radius:.5rem;padding:.75rem 1rem;transition:.2s}
+    input:focus,select:focus,textarea:focus{border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.2);outline:none}
+    .tab-button{flex:1;padding:12px;border-radius:9999px;font-weight:600;cursor:pointer;transition:.2s;text-align:center}
+    .tab-button.active{background:#0d9488;color:#fff;box-shadow:0 4px 6px -1px rgba(13,148,136,.2),0 2px 4px -1px rgba(13,148,136,.12)}
+    .tab-button:not(.active){background:#e2e8f0;color:#4a5568}
+    .tab-button:hover:not(.active){background:#cbd5e0}
+    .dashboard-card{background:#fff;border-radius:.75rem;box-shadow:0 4px 6px rgba(0,0,0,.1);padding:2rem;transition:transform .2s}
+    .stat-box{background:#f0fdfa;border:1px solid #99f6e4;border-radius:.5rem;padding:1rem;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+    .list-item{display:flex;justify-content:space-between;align-items:center;padding:1rem;border-bottom:1px solid #e2e8f0;transition:background .2s}
+    .list-item:hover{background:#f1f5f9}.list-item:last-child{border-bottom:none}
+    .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background:rgba(0,0,0,.4);justify-content:center;align-items:center}
+    .modal-content{background:#fff;padding:2rem;border-radius:.75rem;width:90%;max-width:500px;box-shadow:0 10px 15px rgba(0,0,0,.1)}
+  </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center min-h-screen p-4">
 
-    <!-- Main Container to hold all pages -->
-    <div id="app-container" class="w-full max-w-5xl mx-auto flex flex-col items-center">
+  <div id="app-container" class="w-full max-w-5xl mx-auto flex flex-col items-center">
 
-        <!-- Loading Page -->
-        <div id="loading-page" class="flex flex-col items-center justify-center min-h-screen">
-            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="mt-4 text-lg text-gray-500">Loading...</p>
+    <!-- LOGIN PAGE -->
+    <div id="login-page" class="w-full max-w-sm">
+      <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm">
+        <h1 class="text-2xl font-bold text-center text-gray-800">NSA Ecosystem</h1>
+        <p class="text-center text-sm text-gray-500 mt-2">Sign in to access your portal.</p>
+        <form id="login-form" class="mt-8 space-y-6">
+          <div>
+            <label class="block text-gray-700 font-medium mb-2">Email</label>
+            <input type="email" id="email" placeholder="you@nsa.com" class="w-full" required />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-medium mb-2">Password</label>
+            <input type="password" id="password" placeholder="••••••••" class="w-full" required />
+          </div>
+          <button type="submit" class="gradient-button w-full">Sign In</button>
+        </form>
+        <div class="mt-4 text-center">
+          <button id="google-login-button" class="bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded-full w-full flex items-center justify-center space-x-2 hover:bg-gray-100">
+            <span>Sign in with Google</span>
+          </button>
         </div>
-
-        <!-- Login Portal Page -->
-        <div id="login-page" class="hidden w-full max-w-sm">
-            <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm">
-                <h1 class="text-2xl font-bold text-center text-gray-800">NSA Ecosystem</h1>
-                <p class="text-center text-sm text-gray-500 mt-2" id="login-form-title">Sign in to access your portal.</p>
-                <form id="login-form" class="mt-8 space-y-6">
-                    <div>
-                        <label for="email" class="block text-gray-700 font-medium mb-2">Email</label>
-                        <input type="email" id="email" name="email" placeholder="you@nsa.com" class="w-full" required>
-                    </div>
-                    <div>
-                        <label for="password" class="block text-gray-700 font-medium mb-2">Password</label>
-                        <input type="password" id="password" name="password" placeholder="••••••••" class="w-full" required>
-                    </div>
-                    <button type="submit" id="login-button" class="gradient-button w-full">Sign In</button>
-                </form>
-                <form id="signup-form" class="mt-8 space-y-6 hidden">
-                    <div>
-                        <label for="signup-email" class="block text-gray-700 font-medium mb-2">Email</label>
-                        <input type="email" id="signup-email" name="email" placeholder="you@nsa.com" class="w-full" required>
-                    </div>
-                    <div>
-                        <label for="signup-password" class="block text-gray-700 font-medium mb-2">Password</label>
-                        <input type="password" id="signup-password" name="password" placeholder="••••••••" class="w-full" required>
-                    </div>
-                    <button type="submit" id="signup-button" class="gradient-button w-full">Sign Up</button>
-                </form>
-                <div class="mt-6 text-center text-sm text-gray-500">
-                    <p id="auth-toggle-prompt">Don't have an account? <a href="#" id="auth-toggle-link" class="text-teal-600 font-medium hover:underline">Sign up.</a></p>
-                    <p class="mt-2">Are you a customer or validator?</p>
-                    <button id="show-public-portal" class="text-teal-600 font-medium hover:underline">
-                        Access Public Portal
-                    </button>
-                </div>
-            </div>
+        <div class="mt-6 text-center text-sm text-gray-500">
+          <p>Are you a customer or validator?</p>
+          <button id="show-public-portal" class="text-teal-600 font-medium hover:underline">Access Public Portal</button>
         </div>
-
-        <!-- Admin Dashboard Page (initially hidden) -->
-        <div id="admin-page" class="hidden w-full max-w-5xl">
-            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl mb-4">
-                <h1 class="text-3xl font-bold text-center text-gray-800">NSA Admin Dashboard</h1>
-                <p class="text-center text-sm text-gray-500 mt-2">Real-time analytics and management.</p>
-                <div class="mt-4 text-xs text-center text-gray-400">User ID: <span id="admin-user-id">Loading...</span></div>
-                <div class="mt-2 text-center">
-                    <button id="admin-sign-out" class="text-sm text-teal-600 hover:underline">Sign Out</button>
-                </div>
-            </div>
-            <div id="admin-container" class="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl">
-                <div class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
-                    <button id="admin-overview-tab" class="tab-button active">Overview</button>
-                    <button id="admin-inventory-tab" class="tab-button">Inventory</button>
-                    <button id="admin-sales-tab" class="tab-button">Sales</button>
-                    <button id="admin-incidents-tab" class="tab-button">Incidents</button>
-                    <button id="admin-traceability-tab" class="tab-button">Traceability</button>
-                    <button id="admin-training-tab" class="tab-button">Training</button>
-                    <button id="admin-regulator-tab" class="tab-button">Regulator</button>
-                    <button id="admin-warehouse-tab" class="tab-button">Warehouse</button>
-                    <button id="admin-assets-tab" class="tab-button">Assets</button>
-                    <button id="admin-reports-tab" class="tab-button">Reports</button>
-                    <button id="admin-tasks-tab" class="tab-button">Tasks</button>
-                    <button id="admin-orders-tab" class="tab-button">Orders</button>
-                    <button id="admin-ble-tracking-tab" class="tab-button">BLE Tracking</button>
-                </div>
-                <div id="admin-overview-panel" class="tab-content space-y-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="stat-box">
-                            <p class="text-sm font-medium text-gray-500">Total Sales Revenue</p>
-                            <p id="total-revenue" class="mt-1 text-3xl font-bold text-emerald-600">GHS 0.00</p>
-                        </div>
-                        <div class="stat-box">
-                            <p class="text-sm font-medium text-gray-500">Incidents Reported</p>
-                            <p id="total-incidents" class="mt-1 text-3xl font-bold text-red-500">0</p>
-                        </div>
-                        <div class="stat-box">
-                            <p class="text-sm font-medium text-gray-500">Inventory Logs</p>
-                            <p id="total-inventory" class="mt-1 text-3xl font-bold text-sky-500">0</p>
-                        </div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h2 class="text-xl font-semibold text-gray-700 mb-4">AI Vet Analytics (Simulated)</h2>
-                        <div class="space-y-4">
-                            <div class="flex items-center space-x-4 p-4 rounded-lg bg-red-50">
-                                <div class="text-red-500">
-                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                     </svg>
-                                </div>
-                                <div>
-                                    <p class="text-gray-900 font-medium">Mortality Trend Analysis</p>
-                                    <p id="mortality-trend" class="text-gray-600 text-sm">Loading...</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-4 rounded-lg bg-teal-50">
-                                <div class="text-teal-500">
-                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10m-4-10l-8 4m8-4v10" />
-                                     </svg>
-                                </div>
-                                <div>
-                                    <p class="text-gray-900 font-medium">Feed Usage Forecast</p>
-                                    <p id="feed-forecast" class="text-gray-600 text-sm">Loading...</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="admin-inventory-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Inventory Logs</h2>
-                    <div id="admin-inventory-list" class="space-y-2">
-                        <p class="text-center text-gray-500">Loading inventory data...</p>
-                    </div>
-                </div>
-                <div id="admin-sales-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Sales Logs</h2>
-                    <div id="admin-sales-list" class="space-y-2">
-                        <p class="text-center text-gray-500">Loading sales data...</p>
-                    </div>
-                </div>
-                <div id="admin-incidents-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Incidents</h2>
-                    <div id="admin-incidents-list" class="space-y-2">
-                        <p class="text-center text-gray-500">Loading incident data...</p>
-                    </div>
-                </div>
-                <!-- Admin Traceability Panel -->
-                <div id="admin-traceability-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Generate Traceable Batch</h2>
-                    <form id="batch-generator-form" class="space-y-6">
-                        <div>
-                            <label for="coopId" class="block text-gray-700 font-medium mb-2">Coop ID</label>
-                            <input type="text" id="coopId" name="coopId" placeholder="e.g., Coop-A" class="w-full" required>
-                        </div>
-                        <div>
-                            <label for="birdCount" class="block text-gray-700 font-medium mb-2">Bird Count</label>
-                            <input type="number" id="birdCount" name="birdCount" placeholder="e.g., 500" class="w-full" required>
-                        </div>
-                        <div>
-                            <label for="feedType" class="block text-gray-700 font-medium mb-2">Feed Type</label>
-                            <input type="text" id="feedType" name="feedType" placeholder="e.g., Finisher Mash" class="w-full" required>
-                        </div>
-                        <div>
-                            <label for="batchNotes" class="block text-gray-700 font-medium mb-2">Batch Notes</label>
-                            <textarea id="batchNotes" name="batchNotes" rows="3" placeholder="Notes on batch..." class="w-full"></textarea>
-                        </div>
-                        <button type="submit" id="generate-batch-button" class="gradient-button w-full">Generate Traceable Batch</button>
-                    </form>
-                    <div id="generated-qr-code" class="mt-8 hidden p-6 bg-gray-50 rounded-lg shadow-inner text-center">
-                        <h3 class="font-bold text-gray-700">Generated Batch ID (for QR Code)</h3>
-                        <p id="generated-batch-id" class="text-xl font-mono text-teal-600 my-2 break-all"></p>
-                        <p class="text-sm text-gray-500">Copy this ID to generate a physical QR code for the batch.</p>
-                        <button id="copy-qr-code" class="mt-4 text-sm text-teal-600 hover:underline">Copy to Clipboard</button>
-                    </div>
-                </div>
-
-                <!-- Admin Training Panel (New) -->
-                <div id="admin-training-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Manage Training & Students</h2>
-                    <form id="training-form" class="space-y-4">
-                        <div>
-                            <label for="material-title" class="block text-gray-700 font-medium mb-2">Training Material Title</label>
-                            <input type="text" id="material-title" placeholder="e.g., Biosecurity Protocols" class="w-full" required>
-                        </div>
-                        <div>
-                            <label for="material-link" class="block text-gray-700 font-medium mb-2">Video/PDF Link</label>
-                            <input type="text" id="material-link" placeholder="https://..." class="w-full" required>
-                        </div>
-                        <button type="submit" class="gradient-button w-full">Upload Material</button>
-                    </form>
-                    <div class="mt-8">
-                        <h3 class="text-lg font-semibold text-gray-700">Student Progress Tracker (Mock)</h3>
-                        <div id="student-list" class="mt-4 space-y-2">
-                             <p class="text-gray-500 text-center">No students enrolled yet.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin Regulator Panel (New) -->
-                <div id="admin-regulator-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Regulator & Audit Access (Read-Only)</h2>
-                    <p class="text-sm text-gray-500 text-center">This panel provides a read-only view of all farm data for auditing purposes. All changes are logged and watermarked.</p>
-                    <div class="mt-8 space-y-4">
-                        <h3 class="font-semibold text-gray-700">All Incident Logs (Across Farms)</h3>
-                        <div id="regulator-incidents" class="space-y-2">
-                            <p class="text-gray-500 text-center">Loading regulator data...</p>
-                        </div>
-                        <h3 class="font-semibold text-gray-700 mt-6">All Traceability Logs</h3>
-                        <div id="regulator-traceability" class="space-y-2">
-                            <p class="text-gray-500 text-center">Loading regulator data...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin Warehouse Panel (New) -->
-                <div id="admin-warehouse-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Warehouse Management</h2>
-                    
-                    <div class="dashboard-card mb-8">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Log Incoming Delivery</h3>
-                        <form id="warehouse-delivery-form" class="space-y-4">
-                            <div>
-                                <label for="warehouse-item-name" class="block text-gray-700 font-medium mb-2">Item Name</label>
-                                <input type="text" id="warehouse-item-name" name="itemName" placeholder="e.g., Finisher Mash" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="warehouse-item-type" class="block text-gray-700 font-medium mb-2">Item Type</label>
-                                <select id="warehouse-item-type" name="itemType" class="w-full">
-                                    <option value="feed">Feed</option>
-                                    <option value="medicine">Medicine</option>
-                                    <option value="vaccine">Vaccine</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="warehouse-quantity" class="block text-gray-700 font-medium mb-2">Quantity</label>
-                                <input type="number" id="warehouse-quantity" name="quantity" placeholder="e.g., 100" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="warehouse-supplier" class="block text-gray-700 font-medium mb-2">Supplier</label>
-                                <input type="text" id="warehouse-supplier" name="supplier" placeholder="e.g., Agricorp Ltd." class="w-full">
-                            </div>
-                            <button type="submit" class="gradient-button w-full">Log Delivery</button>
-                        </form>
-                    </div>
-
-                    <div class="dashboard-card">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Dispatch Inventory to Staff</h3>
-                        <div class="space-y-4">
-                            <h4 class="font-medium text-gray-700">Current Stock Levels</h4>
-                            <div id="warehouse-stock-list" class="space-y-2">
-                                <p class="text-gray-500">Loading stock data...</p>
-                            </div>
-                        </div>
-                        <form id="dispatch-form" class="space-y-4 mt-8">
-                            <div>
-                                <label for="dispatch-item-name" class="block text-gray-700 font-medium mb-2">Item to Dispatch</label>
-                                <select id="dispatch-item-name" name="itemName" class="w-full" required>
-                                    <option value="">-- Select an item --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="dispatch-quantity" class="block text-gray-700 font-medium mb-2">Quantity to Dispatch</label>
-                                <input type="number" id="dispatch-quantity" name="quantity" placeholder="e.g., 10" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="dispatch-staff-uid" class="block text-gray-700 font-medium mb-2">Recipient Staff User ID</label>
-                                <input type="text" id="dispatch-staff-uid" name="staffUid" placeholder="Enter Staff User ID" class="w-full" required>
-                            </div>
-                            <button type="submit" class="gradient-button w-full">Dispatch Item</button>
-                        </form>
-                    </div>
-                </div>
-                
-                <!-- Admin Asset Tracking Panel (New) -->
-                <div id="admin-assets-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Asset Management</h2>
-                    <div class="dashboard-card mb-8">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Add New Asset</h3>
-                        <form id="add-asset-form" class="space-y-4">
-                            <div>
-                                <label for="asset-name" class="block text-gray-700 font-medium mb-2">Asset Name</label>
-                                <input type="text" id="asset-name" name="name" placeholder="e.g., Delivery Truck #1" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="asset-type" class="block text-gray-700 font-medium mb-2">Asset Type</label>
-                                <input type="text" id="asset-type" name="type" placeholder="e.g., Vehicle, Equipment" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="asset-assigned-to" class="block text-gray-700 font-medium mb-2">Assigned To (Staff User ID)</label>
-                                <input type="text" id="asset-assigned-to" name="assignedTo" placeholder="Enter Staff User ID" class="w-full">
-                            </div>
-                            <button type="submit" class="gradient-button w-full">Add Asset</button>
-                        </form>
-                    </div>
-
-                    <div class="dashboard-card">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Current Asset Status</h3>
-                        <div id="admin-asset-list" class="space-y-2">
-                            <p class="text-gray-500">Loading asset data...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin Reports Panel (New) -->
-                <div id="admin-reports-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Reports & Analytics</h2>
-                    <div class="dashboard-card mb-8">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Key Metrics Summary</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div class="stat-box">
-                                <p class="text-sm font-medium text-gray-500">Total Sales Revenue</p>
-                                <p id="report-total-revenue" class="mt-1 text-3xl font-bold text-emerald-600">GHS 0.00</p>
-                            </div>
-                            <div class="stat-box">
-                                <p class="text-sm font-medium text-gray-500">Incidents Reported</p>
-                                <p id="report-total-incidents" class="mt-1 text-3xl font-bold text-red-500">0</p>
-                            </div>
-                            <div class="stat-box">
-                                <p class="text-sm font-medium text-gray-500">Total Deliveries</p>
-                                <p id="report-total-deliveries" class="mt-1 text-3xl font-bold text-sky-500">0</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Download Reports</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <button id="download-pdf-report" class="gradient-button flex items-center justify-center space-x-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2h-8a2 2 0 01-2-2V4zm2 2a1 1 0 000 2h8a1 1 0 100-2H6zm0 4a1 1 0 000 2h8a1 1 0 100-2H6zm0 4a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                                </svg>
-                                <span>Download PDF Report</span>
-                            </button>
-                            <button id="download-excel-report" class="gradient-button flex items-center justify-center space-x-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-11.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L8.586 11H3a1 1 0 110-2h5.586L6.293 7.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                                <span>Download Excel Report</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin Tasks Panel (New) -->
-                <div id="admin-tasks-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Task Assignment</h2>
-                    <div class="dashboard-card mb-8">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Assign a New Task</h3>
-                        <form id="assign-task-form" class="space-y-4">
-                            <div>
-                                <label for="task-title" class="block text-gray-700 font-medium mb-2">Task Title</label>
-                                <input type="text" id="task-title" name="title" placeholder="e.g., Feed Delivery to Coop B" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="task-description" class="block text-gray-700 font-medium mb-2">Description</label>
-                                <textarea id="task-description" name="description" rows="3" placeholder="Provide details of the task..." class="w-full" required></textarea>
-                            </div>
-                            <div>
-                                <label for="task-assigned-to" class="block text-gray-700 font-medium mb-2">Assigned To (Staff User ID)</label>
-                                <input type="text" id="task-assigned-to" name="assignedTo" placeholder="Enter Staff User ID" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="task-due-date" class="block text-gray-700 font-medium mb-2">Due Date</label>
-                                <input type="date" id="task-due-date" name="dueDate" class="w-full">
-                            </div>
-                            <button type="submit" class="gradient-button w-full">Assign Task</button>
-                        </form>
-                    </div>
-
-                    <div class="dashboard-card">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Current Tasks</h3>
-                        <div id="admin-task-list" class="space-y-2">
-                            <p class="text-gray-500">Loading task data...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin Orders Panel (New) -->
-                <div id="admin-orders-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Customer Orders</h2>
-                    <div id="admin-orders-list" class="space-y-4">
-                        <p class="text-gray-500 text-center">No orders found.</p>
-                    </div>
-                </div>
-
-                <!-- Admin BLE Tracking Panel (New) -->
-                <div id="admin-ble-tracking-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Live BLE Staff Tracking (Simulated)</h2>
-                    <div class="dashboard-card">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Live Location Feed</h3>
-                        <div id="ble-tracking-list" class="space-y-4">
-                             <p class="text-gray-500">Awaiting BLE logs...</p>
-                        </div>
-                        <button id="simulate-ble-data" class="gradient-button mt-4 w-full text-sm">Simulate New BLE Log</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Field Staff App Page (initially hidden) -->
-        <div id="staff-page" class="hidden w-full max-w-2xl">
-            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl mb-4">
-                <h1 class="text-2xl font-bold text-center text-gray-800">Field Staff App</h1>
-                <p class="text-center text-sm text-gray-500 mt-2">Log and track data in real-time.</p>
-                <div class="mt-4 text-xs text-center text-gray-400">User ID: <span id="staff-user-id">Loading...</span></div>
-                <div class="mt-2 text-center">
-                    <button id="staff-sign-out" class="text-sm text-teal-600 hover:underline">Sign Out</button>
-                </div>
-            </div>
-            <div id="staff-container" class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
-                <div class="flex justify-center space-x-2 mb-8">
-                    <button id="staff-inventory-tab" class="tab-button active">Inventory</button>
-                    <button id="staff-sales-tab" class="tab-button">Sales</button>
-                    <button id="staff-incidents-tab" class="tab-button">Incidents</button>
-                    <button id="staff-assets-tab" class="tab-button">Assets</button>
-                    <button id="staff-tasks-tab" class="tab-button">Tasks</button>
-                </div>
-                <div id="staff-inventory-panel" class="tab-content space-y-6">
-                    <h2 class="text-xl font-semibold text-gray-700 text-center">Log Inventory Delivery</h2>
-                    <form id="inventory-form" class="space-y-6">
-                        <div>
-                            <label for="coop-id" class="block text-gray-700 font-medium mb-2">Coop ID</label>
-                            <input type="text" id="coop-id" name="coop-id" placeholder="e.g., Coop-A" class="w-full" required>
-                        </div>
-                        <div>
-                            <label for="itemType" class="block text-gray-700 font-medium mb-2">Item Type</label>
-                            <select id="itemType" name="itemType" class="w-full">
-                                <option value="feed">Feed</option>
-                                <option value="medicine">Medicine</option>
-                                <option value="vaccine">Vaccine</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="itemName" class="block text-gray-700 font-medium mb-2">Item Name</label>
-                            <input type="text" id="itemName" name="itemName" placeholder="e.g., Layer Mash" class="w-full" required>
-                        </div>
-                        <div>
-                            <label for="quantity" class="block text-gray-700 font-medium mb-2">Quantity</label>
-                            <input type="number" id="quantity" name="quantity" placeholder="e.g., 50 (bags/bottles)" class="w-full" required>
-                        </div>
-                        <div>
-                            <label for="deliveryNotes" class="block text-gray-700 font-medium mb-2">Delivery Notes</label>
-                            <textarea id="deliveryNotes" name="deliveryNotes" rows="3" placeholder="Notes on delivery..." class="w-full"></textarea>
-                        </div>
-                        <button type="submit" id="log-inventory-button" class="gradient-button w-full">Log Inventory</button>
-                    </form>
-
-                    <div class="mt-8">
-                        <h3 class="text-lg font-semibold text-gray-700">Recent Deliveries</h3>
-                        <div id="recent-inventory-list" class="mt-4 space-y-2">
-                            <p class="text-gray-500 text-center">No recent deliveries logged.</p>
-                        </div>
-                    </div>
-                </div>
-                <div id="staff-sales-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Track Sales</h2>
-                    <form id="sales-form" class="space-y-6">
-                        <div>
-                            <label for="saleItem" class="block text-gray-700 font-medium mb-2">Item Sold</label>
-                            <select id="saleItem" name="saleItem" class="w-full">
-                                <option value="birds">Birds</option>
-                                <option value="eggs">Eggs</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="saleQuantity" class="block text-gray-700 font-medium mb-2">Quantity Sold</label>
-                            <input type="number" id="saleQuantity" name="saleQuantity" placeholder="e.g., 10 (birds) or 100 (eggs)" class="w-full">
-                        </div>
-                        <div>
-                            <label for="salePrice" class="block text-gray-700 font-medium mb-2">Total Revenue (GHS)</label>
-                            <input type="number" id="salePrice" name="salePrice" placeholder="e.g., 500" step="0.01" class="w-full">
-                        </div>
-                        <div>
-                            <label for="saleNotes" class="block text-gray-700 font-medium mb-2">Sale Notes</label>
-                            <textarea id="saleNotes" name="saleNotes" rows="3" placeholder="Buyer details, payment method, etc." class="w-full"></textarea>
-                        </div>
-                        <button type="submit" id="log-sales-button" class="gradient-button w-full">Log Sales</button>
-                    </form>
-                </div>
-                <div id="staff-incidents-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Report Incident</h2>
-                    <form id="incidents-form" class="space-y-6">
-                        <div>
-                            <label for="incidentType" class="block text-gray-700 font-medium mb-2">Incident Type</label>
-                            <select id="incidentType" name="incidentType" class="w-full">
-                                <option value="mortality">Mortality</option>
-                                <option value="disease">Disease Outbreak</option>
-                                <option value="supply">Supply Shortage</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="incidentTitle" class="block text-gray-700 font-medium mb-2">Incident Title</label>
-                            <input type="text" id="incidentTitle" name="incidentTitle" placeholder="e.g., High Mortality in Coop B" class="w-full">
-                        </div>
-                        <div>
-                            <label for="incidentNotes" class="block text-gray-700 font-medium mb-2">Description</label>
-                            <textarea id="incidentNotes" name="incidentNotes" rows="5" placeholder="Provide details, affected coop, number of birds, etc." class="w-full"></textarea>
-                        </div>
-                        <div>
-                            <label for="incidentPhoto" class="block text-gray-700 font-medium mb-2">Photo Upload</label>
-                            <input type="file" id="incidentPhoto" name="incidentPhoto" accept="image/*" class="w-full">
-                        </div>
-                        <button type="submit" id="report-incident-button" class="gradient-button w-full">Report Incident</button>
-                    </form>
-                </div>
-                <!-- Staff Asset Tracking Panel (New) -->
-                <div id="staff-assets-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">My Assigned Assets</h2>
-                    <div id="staff-asset-list" class="space-y-4">
-                        <p class="text-gray-500 text-center">No assets assigned.</p>
-                    </div>
-                </div>
-                 <!-- Staff Tasks Panel (New) -->
-                <div id="staff-tasks-panel" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">My Work Orders</h2>
-                    <div id="staff-task-list" class="space-y-4">
-                        <p class="text-gray-500 text-center">No tasks assigned.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Customer Marketplace & Validator Page (initially hidden) -->
-        <div id="public-page" class="hidden w-full max-w-4xl">
-            <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl mb-4">
-                <h1 class="text-3xl font-bold text-center text-gray-800">NSA Customer Portal</h1>
-                <p class="text-center text-sm text-gray-500 mt-2">Browse our products and track your orders.</p>
-                <div class="mt-4 text-xs text-center text-gray-400">User ID: <span id="customer-user-id">Loading...</span></div>
-                <div class="mt-2 text-center">
-                    <button id="show-login-portal" class="text-sm text-teal-600 hover:underline">Internal Sign-in</button>
-                </div>
-            </div>
-            <div id="public-container" class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl">
-                <div class="flex justify-center space-x-2 md:space-x-4 mb-8">
-                    <button id="public-marketplace-tab" class="tab-button active">Marketplace</button>
-                    <button id="public-order-tracking-tab" class="tab-button">Track Order</button>
-                    <button id="public-traceability-tab" class="tab-button">Traceability</button>
-                </div>
-                <div id="public-marketplace-panel" class="tab-content space-y-8">
-                    <div class="relative w-full h-96 rounded-xl overflow-hidden shadow-lg">
-                        <img src="https://images.unsplash.com/photo-1579621970795-87facc2f976d?q=80&w=2000&auto=format&fit=crop" alt="Smart Agro" class="absolute inset-0 w-full h-full object-cover z-0 transition-transform duration-500 hover:scale-105">
-                        <div class="relative z-10 flex flex-col items-center justify-center h-full text-white bg-black bg-opacity-40 p-4">
-                            <h2 class="text-4xl md:text-5xl font-extrabold text-center tracking-tight">Smart Agriculture</h2>
-                            <p class="mt-2 text-lg text-center font-medium">Farming for a sustainable future.</p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="p-6 rounded-xl bg-green-50 shadow-inner flex flex-col items-center text-center">
-                            <img src="https://images.unsplash.com/photo-1617208491873-a657c6b24d73?q=80&w=2000&auto=format&fit=crop" alt="Poultry" class="w-full h-40 object-cover rounded-lg mb-4">
-                            <p class="font-bold text-gray-800">Poultry</p>
-                        </div>
-                        <div class="p-6 rounded-xl bg-blue-50 shadow-inner flex flex-col items-center text-center">
-                            <img src="https://images.unsplash.com/photo-1549646467-f273b53f33de?q=80&w=2000&auto=format&fit=fit=crop" alt="Cold Chain" class="w-full h-40 object-cover rounded-lg mb-4">
-                            <p class="font-bold text-gray-800">Cold Chain</p>
-                        </div>
-                        <div class="p-6 rounded-xl bg-orange-50 shadow-inner flex flex-col items-center text-center">
-                            <img src="https://images.unsplash.com/photo-1582234375003-88390885e347?q=80&w=2000&auto=format&fit=fit=crop" alt="Post-Harvest" class="w-full h-40 object-cover rounded-lg mb-4">
-                            <p class="font-bold text-gray-800">Post-Harvest</p>
-                        </div>
-                    </div>
-                    <h2 class="text-2xl font-semibold text-gray-700 text-center">Available Products</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="card p-6 bg-white rounded-xl shadow-lg">
-                            <img class="product-image w-full rounded-lg mb-4" src="https://placehold.co/400x300/e2e8f0/4a5568?text=Birds+for+Sale" alt="A group of chickens">
-                            <h3 class="text-xl font-bold text-gray-800">Live Birds</h3>
-                            <p class="text-gray-500 mt-1">Healthy, organically raised birds.</p>
-                            <button id="buy-birds" class="gradient-button mt-4 w-full">Order Now</button>
-                        </div>
-                        <div class="card p-6 bg-white rounded-xl shadow-lg">
-                            <img class="product-image w-full rounded-lg mb-4" src="https://placehold.co/400x300/e2e8f0/4a5568?text=Fresh+Eggs" alt="A carton of fresh eggs">
-                            <h3 class="text-xl font-bold text-gray-800">Fresh Eggs</h3>
-                            <p class="text-gray-500 mt-1">Farm-fresh, large brown eggs.</p>
-                            <button id="buy-eggs" class="gradient-button mt-4 w-full">Order Now</button>
-                        </div>
-                    </div>
-                    <div id="order-form-container" class="mt-8 hidden">
-                        <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Place Your Order</h2>
-                        <form id="order-form" class="space-y-6">
-                            <div>
-                                <label for="customerName" class="block text-gray-700 font-medium mb-2">Your Name</label>
-                                <input type="text" id="customerName" name="customerName" placeholder="John Doe" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="customerEmail" class="block text-gray-700 font-medium mb-2">Email</label>
-                                <input type="email" id="customerEmail" name="customerEmail" placeholder="you@example.com" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="product" class="block text-gray-700 font-medium mb-2">Product</label>
-                                <input type="text" id="product" name="product" class="w-full bg-gray-200 cursor-not-allowed" readonly required>
-                            </div>
-                            <div>
-                                <label for="quantity" class="block text-gray-700 font-medium mb-2">Quantity</label>
-                                <input type="number" id="quantity" name="quantity" placeholder="e.g., 100" class="w-full" required>
-                            </div>
-                            <div>
-                                <label for="paymentMethod" class="block text-gray-700 font-medium mb-2">Payment Method</label>
-                                <select id="paymentMethod" name="paymentMethod" class="w-full" required>
-                                    <option value="memo">Memo</option>
-                                    <option value="bank-transfer">Bank Transfer</option>
-                                    <option value="card">Visa/MasterCard</option>
-                                </select>
-                            </div>
-                            <button type="submit" id="submit-order-button" class="gradient-button w-full">Submit Order Request</button>
-                        </form>
-                    </div>
-                </div>
-                <div id="order-tracking-panel" class="tab-content hidden">
-                    <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Track Your Order</h2>
-                    <div class="space-y-4">
-                        <p class="text-center text-gray-500">Enter your order ID below.</p>
-                        <div>
-                            <label for="order-id-input" class="block text-gray-700 font-medium mb-2">Order ID</label>
-                            <input type="text" id="order-id-input" placeholder="e.g., ORD-A1B2C3D4" class="w-full">
-                        </div>
-                        <button id="track-order-button" class="gradient-button w-full">Track Order</button>
-                    </div>
-                    <div id="tracking-result" class="mt-8 p-6 bg-gray-50 rounded-lg shadow-inner hidden">
-                        <h3 class="text-xl font-semibold text-center mb-4 text-emerald-600">Order Details</h3>
-                        <div class="space-y-4 text-gray-700">
-                            <div class="flex justify-between">
-                                <span class="font-medium">Order ID:</span>
-                                <span id="result-order-id"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-medium">Product:</span>
-                                <span id="result-product"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-medium">Quantity:</span>
-                                <span id="result-quantity"></span>
-                            </div>
-                            <div class="flex justify-between items-start">
-                                <span class="font-medium">Payment Method:</span>
-                                <span id="result-payment-method" class="text-sm text-right"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-medium">Current Status:</span>
-                                <span id="result-status" class="font-bold text-blue-500"></span>
-                            </div>
-                            <div class="flex justify-between items-start">
-                                <span class="font-medium">Delivery History:</span>
-                                <ul id="result-delivery-history" class="list-disc list-inside text-sm text-gray-600 ml-4"></ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="tracking-error" class="mt-8 p-6 bg-red-50 text-red-700 border border-red-200 rounded-lg hidden">
-                        <p class="text-center font-medium">Order not found. Please check the ID and try again.</p>
-                    </div>
-                </div>
-                <!-- Public Traceability Panel (new) -->
-                <div id="traceability-panel" class="tab-content hidden">
-                    <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Validate Product Traceability</h2>
-                    <div class="space-y-4">
-                        <p class="text-center text-gray-500">Enter a product Batch ID to view its history.</p>
-                        <div>
-                            <label for="batch-id-input" class="block text-gray-700 font-medium mb-2">Batch ID</label>
-                            <input type="text" id="batch-id-input" placeholder="e.g., BATCH-12345" class="w-full">
-                        </div>
-                        <button id="validate-batch-button" class="gradient-button w-full">Validate Batch</button>
-                    </div>
-                    <div id="validation-result" class="mt-8 p-6 bg-gray-50 rounded-lg shadow-inner hidden">
-                        <h3 class="text-xl font-semibold text-center mb-4 text-emerald-600">Batch Details</h3>
-                        <div class="space-y-4 text-gray-700">
-                            <div class="flex justify-between">
-                                <span class="font-medium">Batch ID:</span>
-                                <span id="result-batch-id"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-medium">Coop ID:</span>
-                                <span id="result-coop-id"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-medium">Bird Count:</span>
-                                <span id="result-bird-count"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-medium">Feed Type:</span>
-                                <span id="result-feed-type"></span>
-                            </div>
-                            <div class="flex justify-between items-start">
-                                <span class="font-medium">Blockchain Hash:</span>
-                                <span id="result-blockchain-hash" class="text-xs font-mono text-gray-600 break-all text-right"></span>
-                            </div>
-                            <div class="flex justify-between items-start">
-                                <span class="font-medium">Notes:</span>
-                                <span id="result-batch-notes" class="text-xs text-gray-600 text-right"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="validation-error" class="mt-8 p-6 bg-red-50 text-red-700 border border-red-200 rounded-lg hidden">
-                        <p class="text-center font-medium">Batch not found. Please check the ID and try again.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <footer class="mt-8 text-center text-gray-500 text-sm">
-        <p>powered by MulticomIOT</p>
-    </footer>
-
-    <!-- Modal for custom alerts -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
-            <p id="modal-message" class="text-gray-700 mb-4"></p>
-            <button id="modal-close" class="gradient-button w-full">OK</button>
-        </div>
+      </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    
-    <script>
-        // --- Firebase Configuration ---
-        const appId = 'nsa-miot';
-        const firebaseConfig = {
-            apiKey: "AIzaSyDDbxNeMpLncUVPJtmtsFzNq0zLA9nHB_U",
-            authDomain: "nsa-miot.firebaseapp.com",
-            projectId: "nsa-miot",
-            storageBucket: "nsa-miot.firebasestorage.app",
-            messagingSenderId: "1078189349427",
-            appId: "1:1078189349427:web:9c4d6503c71da21fd2a146",
-            measurementId: "G-9RFX2052QE"
-        };
-        
-        // --- Firebase Initialization ---
-        let app, auth, db, storage;
-        try {
-            app = firebase.initializeApp(firebaseConfig);
-            auth = app.auth();
-            db = app.firestore();
-            storage = app.storage();
-            console.log('Firebase initialized successfully.');
-        } catch (e) {
-            console.error('Firebase initialization failed:', e);
-            showModal('Initialization Error', 'Failed to initialize Firebase. Please check your configuration and network.');
-        }
+    <!-- ADMIN PAGE -->
+    <div id="admin-page" class="hidden w-full max-w-5xl">
+      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl mb-4">
+        <h1 class="text-3xl font-bold text-center text-gray-800">NSA Admin Dashboard</h1>
+        <p class="text-center text-sm text-gray-500 mt-2">Real-time analytics and management.</p>
+        <div class="mt-2 text-center text-xs text-gray-400">User ID: <span id="admin-user-id">Loading...</span></div>
+        <div class="mt-2 text-center"><button id="admin-sign-out" class="text-sm text-teal-600 hover:underline">Sign Out</button></div>
+      </div>
 
-        // --- UI & State Management ---
-        const loadingPage = document.getElementById('loading-page');
-        const loginPage = document.getElementById('login-page');
-        const adminPage = document.getElementById('admin-page');
-        const staffPage = document.getElementById('staff-page');
-        const publicPage = document.getElementById('public-page');
-        
-        // Modal elements
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalClose = document.getElementById('modal-close');
-        function showModal(title, message) {
-            modalTitle.textContent = title;
-            modalMessage.innerHTML = message;
-            modal.style.display = 'flex';
-        }
-        modalClose.onclick = () => { modal.style.display = 'none'; };
+      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl">
+        <div class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8" id="admin-tabs">
+          <button id="admin-overview-tab" class="tab-button active">Overview</button>
+          <button id="admin-inventory-tab" class="tab-button">Inventory</button>
+          <button id="admin-sales-tab" class="tab-button">Sales</button>
+          <button id="admin-incidents-tab" class="tab-button">Incidents</button>
+          <button id="admin-traceability-tab" class="tab-button">Traceability</button>
+          <button id="admin-training-tab" class="tab-button">Training</button>
+          <button id="admin-regulator-tab" class="tab-button">Regulator</button>
+          <button id="admin-warehouse-tab" class="tab-button">Warehouse</button>
+          <button id="admin-assets-tab" class="tab-button">Assets</button>
+          <button id="admin-reports-tab" class="tab-button">Reports</button>
+          <button id="admin-tasks-tab" class="tab-button">Tasks</button>
+          <button id="admin-orders-tab" class="tab-button">Orders</button>
+          <button id="admin-ble-tracking-tab" class="tab-button">BLE Tracking</button>
+          <button id="admin-roles-tab" class="tab-button">Roles</button>
+        </div>
 
-        function showPage(pageName) {
-            loadingPage.classList.add('hidden');
-            loginPage.classList.add('hidden');
-            adminPage.classList.add('hidden');
-            staffPage.classList.add('hidden');
-            publicPage.classList.add('hidden');
-
-            if (pageName === 'login') {
-                loginPage.classList.remove('hidden');
-            } else if (pageName === 'admin') {
-                adminPage.classList.remove('hidden');
-            } else if (pageName === 'staff') {
-                staffPage.classList.remove('hidden');
-            } else if (pageName === 'public') {
-                publicPage.classList.remove('hidden');
-            }
-        }
-
-        // Utility function for safe timestamp formatting
-        function toLocalStringSafe(ts) {
-            if (!ts) return 'N/A';
-            const d = ts.toDate ? ts.toDate() : (ts instanceof Date ? ts : null);
-            return d ? d.toLocaleString() : 'N/A';
-        }
-        
-        // --- Authentication Logic ---
-        function requireAuthOrModal() {
-            if (!auth.currentUser) {
-                showModal('Not signed in', 'Please sign in to continue.');
-                return false;
-            }
-            return true;
-        }
-
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                if (user.isAnonymous) {
-                    const customerUserIdSpan = document.getElementById('customer-user-id');
-                    if(customerUserIdSpan) customerUserIdSpan.textContent = user.uid;
-                    showPage('public');
-                } else {
-                    user.getIdTokenResult(true).then(token => {
-                        const role = token.claims.role;
-                        if (role === 'admin') {
-                            const adminUserIdSpan = document.getElementById('admin-user-id');
-                            if(adminUserIdSpan) adminUserIdSpan.textContent = user.uid;
-                            showPage('admin');
-                        } else if (role === 'staff') {
-                            const staffUserIdSpan = document.getElementById('staff-user-id');
-                            if(staffUserIdSpan) staffUserIdSpan.textContent = user.uid;
-                            showPage('staff');
-                        } else {
-                            auth.signOut();
-                            showModal('Access Denied', 'Your account does not have a role assigned.');
-                        }
-                    }).catch(error => {
-                        console.error("Failed to get ID token claims:", error);
-                        auth.signOut();
-                        showModal('Access Denied', 'Failed to retrieve your account information. Please try again.');
-                    });
-                }
-            } else {
-                showPage('login');
-            }
-        });
-
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            try {
-                await auth.signInWithEmailAndPassword(email, password);
-            } catch (error) {
-                console.error("Login failed:", error);
-                showModal('Login Failed', 'Invalid email or password. Please try again.');
-            }
-        });
-        
-        document.getElementById('auth-toggle-link').onclick = (e) => {
-            e.preventDefault();
-            const loginForm = document.getElementById('login-form');
-            const signupForm = document.getElementById('signup-form');
-            const togglePrompt = document.getElementById('auth-toggle-prompt');
-            
-            if (loginForm.classList.contains('hidden')) {
-                loginForm.classList.remove('hidden');
-                signupForm.classList.add('hidden');
-                togglePrompt.innerHTML = `Don't have an account? <a href="#" id="auth-toggle-link" class="text-teal-600 font-medium hover:underline">Sign up.</a>`;
-                document.getElementById('login-form-title').textContent = 'Sign in to access your portal.';
-            } else {
-                loginForm.classList.add('hidden');
-                signupForm.classList.remove('hidden');
-                togglePrompt.innerHTML = `Already have an account? <a href="#" id="auth-toggle-link" class="text-teal-600 font-medium hover:underline">Sign in.</a>`;
-                document.getElementById('login-form-title').textContent = 'Create a new account.';
-            }
-        };
-
-        document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            try {
-                await auth.createUserWithEmailAndPassword(email, password);
-                showModal('Account Created', 'Your account has been created. You can now sign in.');
-                document.getElementById('login-form').classList.remove('hidden');
-                document.getElementById('signup-form').classList.add('hidden');
-                document.getElementById('auth-toggle-prompt').innerHTML = `Don't have an account? <a href="#" id="auth-toggle-link" class="text-teal-600 font-medium hover:underline">Sign up.</a>`;
-                document.getElementById('login-form-title').textContent = 'Sign in to access your portal.';
-            } catch (error) {
-                console.error("Signup failed:", error);
-                showModal('Signup Failed', 'There was an error creating your account. Please try again.');
-            }
-        });
-
-
-        document.getElementById('show-public-portal').onclick = () => {
-            auth.signInAnonymously().catch(error => {
-                console.error('Anonymous sign-in failed:', error);
-                showModal('Authentication Failed', 'Could not sign in to the public portal.');
-            });
-        };
-        
-        document.getElementById('admin-sign-out').onclick = () => auth.signOut();
-        document.getElementById('staff-sign-out').onclick = () => auth.signOut();
-        document.getElementById('show-login-portal').onclick = () => auth.signOut();
-
-        // --- Admin Dashboard Logic ---
-        const adminTabs = ['overview', 'inventory', 'sales', 'incidents', 'traceability', 'training', 'regulator', 'warehouse', 'assets', 'reports', 'tasks', 'orders', 'ble-tracking'];
-        const adminContainer = document.getElementById('admin-page');
-        adminTabs.forEach(tab => {
-            document.getElementById(`admin-${tab}-tab`).onclick = () => {
-                adminContainer.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-                adminContainer.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                document.getElementById(`admin-${tab}-tab`).classList.add('active');
-                document.getElementById(`admin-${tab}-panel`).classList.remove('hidden');
-            };
-        });
-
-        let salesData = [];
-        let incidentsData = [];
-        let deliveriesData = [];
-        let ordersData = []; // Added ordersData array
-
-        function updateAdminAnalytics() {
-            const mortalityRateThreshold = 0.005; // 0.5%
-            const mortalityCount = incidentsData.filter(i => i.incidentType === 'mortality').length;
-            const totalBirds = deliveriesData.filter(i => i.itemType === 'birds').reduce((sum, item) => sum + item.quantity, 0);
-            const mortalityTrend = totalBirds > 0 && (mortalityCount / totalBirds) > mortalityRateThreshold
-                ? 'High mortality detected. Immediate action required.'
-                : 'Mortality is within normal range.';
-            
-            const totalFeedQuantity = deliveriesData.filter(i => i.itemType === 'feed').reduce((sum, item) => sum + item.quantity, 0);
-            const feedForecast = `Total feed logged: ${totalFeedQuantity} units. Forecast pending.`;
-            const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.salePrice || 0), 0);
-            
-            document.getElementById('total-revenue').textContent = `GHS ${totalRevenue.toFixed(2)}`;
-            document.getElementById('total-incidents').textContent = incidentsData.length;
-            document.getElementById('total-inventory').textContent = deliveriesData.length;
-            document.getElementById('mortality-trend').textContent = mortalityTrend;
-            document.getElementById('feed-forecast').textContent = feedForecast;
-            
-            document.getElementById('report-total-revenue').textContent = `GHS ${totalRevenue.toFixed(2)}`;
-            document.getElementById('report-total-incidents').textContent = incidentsData.length;
-            document.getElementById('report-total-deliveries').textContent = deliveriesData.length;
-        }
-
-        function renderAdminList(items, containerId, renderer) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = items.length ? items.map(item => renderer(item)).join('') : `<p class="text-center text-gray-500">No data found.</p>`;
-        }
-
-        const renderAdminOrder = (order) => {
-            const statusColor = order.status === 'Delivered' ? 'bg-green-100 text-green-700' : (order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700');
-            return `
-            <div class="dashboard-card flex flex-col items-start">
-                <div class="flex justify-between w-full">
-                    <span class="text-lg font-bold text-gray-800">Order ID: ${order.id}</span>
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${order.status}</span>
-                </div>
-                <p class="text-sm text-gray-500 mt-1">Customer: ${order.customerName} (${order.customerEmail})</p>
-                <p class="text-sm text-gray-500">Product: ${order.product} (${order.quantity})</p>
-                <p class="text-sm text-gray-500">Payment: ${order.paymentMethod}</p>
-                <div class="mt-4 w-full">
-                    <label for="status-update-${order.id}" class="block text-sm font-medium text-gray-700 mb-2">Update Status</label>
-                    <select id="status-update-${order.id}" class="w-full">
-                        <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                        <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
-                        <option value="Out for Delivery" ${order.status === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
-                        <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                    </select>
-                    <button onclick="updateOrderStatus('${order.id}')" class="gradient-button mt-2 w-full text-sm py-2">Update</button>
-                </div>
+        <!-- Overview Panel -->
+        <div id="admin-overview-panel" class="tab-content space-y-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="stat-box"><p class="text-sm font-medium text-gray-500">Total Sales Revenue</p><p id="total-revenue" class="mt-1 text-3xl font-bold text-emerald-600">GHS 0.00</p></div>
+            <div class="stat-box"><p class="text-sm font-medium text-gray-500">Incidents Reported</p><p id="total-incidents" class="mt-1 text-3xl font-bold text-red-500">0</p></div>
+            <div class="stat-box"><p class="text-sm font-medium text-gray-500">Inventory Logs</p><p id="total-inventory" class="mt-1 text-3xl font-bold text-sky-500">0</p></div>
+          </div>
+          <div class="dashboard-card">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">AI Vet Analytics (Simulated)</h2>
+            <div class="space-y-4">
+              <div class="flex items-center space-x-4 p-4 rounded-lg bg-red-50">
+                <div class="text-red-500">⚡</div>
+                <div><p class="text-gray-900 font-medium">Mortality Trend Analysis</p><p id="mortality-trend" class="text-gray-600 text-sm">Loading...</p></div>
+              </div>
+              <div class="flex items-center space-x-4 p-4 rounded-lg bg-teal-50">
+                <div class="text-teal-500">📦</div>
+                <div><p class="text-gray-900 font-medium">Feed Usage Forecast</p><p id="feed-forecast" class="text-gray-600 text-sm">Loading...</p></div>
+              </div>
             </div>
-            `;
-        };
-        window.updateOrderStatus = async (orderId) => {
-            if (!requireAuthOrModal()) return;
-            const selectElement = document.getElementById(`status-update-${orderId}`);
-            const newStatus = selectElement.value;
-            const orderRef = db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId);
-            try {
-                const docSnap = await orderRef.get();
-                const currentHistory = docSnap.data().deliveryHistory || [];
-                const newHistory = [...currentHistory, { status: newStatus, timestamp: firebase.firestore.FieldValue.serverTimestamp() }];
-                await orderRef.update({
-                    status: newStatus,
-                    deliveryHistory: newHistory
-                });
-                showModal('Success!', `Order ${orderId} status updated to ${newStatus}.`);
-            } catch (error) {
-                console.error("Error updating order status:", error);
-                showModal('Error', 'Failed to update order status. Please try again.');
-            }
-        };
+          </div>
+        </div>
 
-        const renderAdminInventory = (item) => `
-            <div class="list-item">
-                <span class="text-sm font-medium text-gray-700">${item.itemName} (${item.itemType})</span>
-                <span class="text-gray-500 text-sm">${item.quantity} units</span>
+        <!-- Inventory -->
+        <div id="admin-inventory-panel" class="tab-content hidden"><h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Inventory Logs</h2><div id="admin-inventory-list" class="space-y-2"><p class="text-center text-gray-500">Loading...</p></div></div>
+        <!-- Sales -->
+        <div id="admin-sales-panel" class="tab-content hidden"><h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Sales Logs</h2><div id="admin-sales-list" class="space-y-2"><p class="text-center text-gray-500">Loading...</p></div></div>
+        <!-- Incidents -->
+        <div id="admin-incidents-panel" class="tab-content hidden"><h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Recent Incidents</h2><div id="admin-incidents-list" class="space-y-2"><p class="text-center text-gray-500">Loading...</p></div></div>
+        <!-- Traceability -->
+        <div id="admin-traceability-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Generate Traceable Batch</h2>
+          <form id="batch-generator-form" class="space-y-6">
+            <div><label class="block text-gray-700 font-medium mb-2">Coop ID</label><input id="coopId" class="w-full" required /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Bird Count</label><input type="number" id="birdCount" class="w-full" required /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Feed Type</label><input id="feedType" class="w-full" required /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Batch Notes</label><textarea id="batchNotes" rows="3" class="w-full"></textarea></div>
+            <button class="gradient-button w-full">Generate Traceable Batch</button>
+          </form>
+          <div id="generated-qr-code" class="mt-8 hidden p-6 bg-gray-50 rounded-lg shadow-inner text-center">
+            <h3 class="font-bold text-gray-700">Generated Batch ID</h3>
+            <p id="generated-batch-id" class="text-xl font-mono text-teal-600 my-2 break-all"></p>
+            <p class="text-sm text-gray-500">Copy this ID to generate a physical QR code for the batch.</p>
+            <button id="copy-qr-code" class="mt-4 text-sm text-teal-600 hover:underline">Copy to Clipboard</button>
+          </div>
+        </div>
+        <!-- Training -->
+        <div id="admin-training-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Manage Training & Students</h2>
+          <form id="training-form" class="space-y-4">
+            <div><label class="block text-gray-700 font-medium mb-2">Training Material Title</label><input id="material-title" class="w-full" required /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Video/PDF Link</label><input id="material-link" class="w-full" required /></div>
+            <button class="gradient-button w-full">Upload Material</button>
+          </form>
+          <div class="mt-8"><h3 class="text-lg font-semibold text-gray-700">Student Progress Tracker (Mock)</h3><div id="student-list" class="mt-4 space-y-2"><p class="text-gray-500 text-center">No students enrolled yet.</p></div></div>
+        </div>
+        <!-- Regulator -->
+        <div id="admin-regulator-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Regulator & Audit Access (Read-Only)</h2>
+          <div class="mt-8 space-y-4">
+            <h3 class="font-semibold text-gray-700">All Incident Logs</h3>
+            <div id="regulator-incidents" class="space-y-2"><p class="text-gray-500 text-center">Loading...</p></div>
+            <h3 class="font-semibold text-gray-700 mt-6">All Traceability Logs</h3>
+            <div id="regulator-traceability" class="space-y-2"><p class="text-gray-500 text-center">Loading...</p></div>
+          </div>
+        </div>
+        <!-- Warehouse -->
+        <div id="admin-warehouse-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Warehouse Management</h2>
+          <div class="dashboard-card mb-8">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Log Incoming Delivery</h3>
+            <form id="warehouse-delivery-form" class="space-y-4">
+              <div><label class="block text-gray-700 font-medium mb-2">Item Name</label><input id="warehouse-item-name" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Item Type</label><select id="warehouse-item-type" class="w-full"><option value="feed">Feed</option><option value="medicine">Medicine</option><option value="vaccine">Vaccine</option><option value="other">Other</option></select></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Quantity</label><input type="number" id="warehouse-quantity" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Supplier</label><input id="warehouse-supplier" class="w-full" /></div>
+              <button class="gradient-button w-full">Log Delivery</button>
+            </form>
+          </div>
+          <div class="dashboard-card">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Dispatch Inventory to Staff</h3>
+            <div class="space-y-4">
+              <h4 class="font-medium text-gray-700">Current Stock Levels</h4>
+              <div id="warehouse-stock-list" class="space-y-2"><p class="text-gray-500">Loading stock data...</p></div>
             </div>
-        `;
-        const renderAdminSale = (item) => `
-            <div class="list-item">
-                <span class="text-sm font-medium text-gray-700">${item.saleItem}</span>
-                <span class="text-emerald-600 font-bold text-sm">GHS ${item.salePrice.toFixed(2)}</span>
+            <form id="dispatch-form" class="space-y-4 mt-8">
+              <div><label class="block text-gray-700 font-medium mb-2">Item to Dispatch</label><select id="dispatch-item-name" class="w-full" required><option value="">-- Select an item --</option></select></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Quantity</label><input type="number" id="dispatch-quantity" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Recipient Staff UID</label><input id="dispatch-staff-uid" class="w-full" required /></div>
+              <button class="gradient-button w-full">Dispatch Item</button>
+            </form>
+          </div>
+        </div>
+        <!-- Assets -->
+        <div id="admin-assets-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Asset Management</h2>
+          <div class="dashboard-card mb-8">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Add New Asset</h3>
+            <form id="add-asset-form" class="space-y-4">
+              <div><label class="block text-gray-700 font-medium mb-2">Asset Name</label><input id="asset-name" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Asset Type</label><input id="asset-type" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Assigned To (Staff UID)</label><input id="asset-assigned-to" class="w-full" /></div>
+              <button class="gradient-button w-full">Add Asset</button>
+            </form>
+          </div>
+          <div class="dashboard-card"><h3 class="text-lg font-semibold text-gray-700 mb-4">Current Asset Status</h3><div id="admin-asset-list" class="space-y-2"><p class="text-gray-500">Loading asset data...</p></div></div>
+        </div>
+        <!-- Reports -->
+        <div id="admin-reports-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Reports & Analytics</h2>
+          <div class="dashboard-card mb-8">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Key Metrics Summary</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div class="stat-box"><p class="text-sm font-medium text-gray-500">Total Sales Revenue</p><p id="report-total-revenue" class="mt-1 text-3xl font-bold text-emerald-600">GHS 0.00</p></div>
+              <div class="stat-box"><p class="text-sm font-medium text-gray-500">Incidents Reported</p><p id="report-total-incidents" class="mt-1 text-3xl font-bold text-red-500">0</p></div>
+              <div class="stat-box"><p class="text-sm font-medium text-gray-500">Total Deliveries</p><p id="report-total-deliveries" class="mt-1 text-3xl font-bold text-sky-500">0</p></div>
             </div>
-        `;
-        const renderAdminIncident = (item) => {
-            const statusColor = item.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
-            return `
-            <div class="list-item flex-col items-start space-y-1">
-                <div class="flex justify-between w-full">
-                    <span class="text-sm font-medium text-gray-700">${item.incidentTitle}</span>
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${item.status || 'Pending'}</span>
-                </div>
-                <p class="text-gray-500 text-xs">${item.incidentNotes}</p>
+          </div>
+          <div class="dashboard-card">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Download Reports</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button id="download-pdf-report" class="gradient-button">Download PDF Report</button>
+              <button id="download-excel-report" class="gradient-button">Download Excel Report</button>
             </div>
-            `;
-        };
-        const renderAdminTask = (task) => {
-            const statusColor = task.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
-            return `
-            <div class="list-item flex-col items-start space-y-1">
-                <div class="flex justify-between w-full">
-                    <span class="text-sm font-medium text-gray-700">${task.title}</span>
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor}">${task.status || 'Assigned'}</span>
-                </div>
-                <p class="text-gray-500 text-xs">${task.description}</p>
-                <p class="text-xs text-gray-400">Assigned to: ${task.assignedTo}</p>
+          </div>
+        </div>
+        <!-- Tasks -->
+        <div id="admin-tasks-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Task Assignment</h2>
+          <div class="dashboard-card mb-8">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Assign a New Task</h3>
+            <form id="assign-task-form" class="space-y-4">
+              <div><label class="block text-gray-700 font-medium mb-2">Task Title</label><input id="task-title" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Description</label><textarea id="task-description" rows="3" class="w-full" required></textarea></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Assigned To (Staff UID)</label><input id="task-assigned-to" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Due Date</label><input type="date" id="task-due-date" class="w-full" /></div>
+              <button class="gradient-button w-full">Assign Task</button>
+            </form>
+          </div>
+          <div class="dashboard-card"><h3 class="text-lg font-semibold text-gray-700 mb-4">Current Tasks</h3><div id="admin-task-list" class="space-y-2"><p class="text-gray-500">Loading task data...</p></div></div>
+        </div>
+        <!-- Orders -->
+        <div id="admin-orders-panel" class="tab-content hidden"><h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Customer Orders</h2><div id="admin-orders-list" class="space-y-4"><p class="text-gray-500 text-center">No orders found.</p></div></div>
+        <!-- BLE -->
+        <div id="admin-ble-tracking-panel" class="tab-content hidden"><h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Live BLE Staff Tracking (Simulated)</h2><div class="dashboard-card"><h3 class="text-lg font-semibold text-gray-700 mb-4">Live Location Feed</h3><div id="ble-tracking-list" class="space-y-4"><p class="text-gray-500">Awaiting BLE logs...</p></div><button id="simulate-ble-data" class="gradient-button mt-4 w-full text-sm">Simulate New BLE Log</button></div></div>
+        <!-- Roles -->
+        <div id="admin-roles-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Roles Management</h2>
+          <div class="dashboard-card">
+            <form id="set-role-form" class="space-y-4">
+              <div><label class="block text-gray-700 font-medium mb-2">User Email</label><input id="role-email" type="email" class="w-full" placeholder="user@example.com" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Role</label>
+                <select id="role-value" class="w-full" required>
+                  <option value="admin">admin</option>
+                  <option value="staff">staff</option>
+                  <option value="customer">customer</option>
+                </select>
+              </div>
+              <button class="gradient-button w-full">Set Role</button>
+            </form>
+            <p class="text-xs text-gray-500 mt-4">This uses a Firebase Callable Function (Admin SDK) to set a custom claim and mirror a roles/{uid} doc.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- STAFF PAGE -->
+    <div id="staff-page" class="hidden w-full max-w-2xl">
+      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl mb-4">
+        <h1 class="text-2xl font-bold text-center text-gray-800">Field Staff App</h1>
+        <div class="mt-2 text-center text-xs text-gray-400">User ID: <span id="staff-user-id">Loading...</span></div>
+        <div class="mt-2 text-center"><button id="staff-sign-out" class="text-sm text-teal-600 hover:underline">Sign Out</button></div>
+      </div>
+      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
+        <div class="flex justify-center space-x-2 mb-8" id="staff-tabs">
+          <button id="staff-inventory-tab" class="tab-button active">Inventory</button>
+          <button id="staff-sales-tab" class="tab-button">Sales</button>
+          <button id="staff-incidents-tab" class="tab-button">Incidents</button>
+          <button id="staff-assets-tab" class="tab-button">Assets</button>
+          <button id="staff-tasks-tab" class="tab-button">Tasks</button>
+        </div>
+        <div id="staff-inventory-panel" class="tab-content space-y-6">
+          <h2 class="text-xl font-semibold text-gray-700 text-center">Log Inventory Delivery</h2>
+          <form id="inventory-form" class="space-y-6">
+            <div><label class="block text-gray-700 font-medium mb-2">Coop ID</label><input id="coop-id" class="w-full" required /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Item Type</label><select id="itemType" class="w-full"><option value="feed">Feed</option><option value="medicine">Medicine</option><option value="vaccine">Vaccine</option><option value="other">Other</option></select></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Item Name</label><input id="itemName" class="w-full" required /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Quantity</label><input type="number" id="quantity" class="w-full" required /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Delivery Notes</label><textarea id="deliveryNotes" rows="3" class="w-full"></textarea></div>
+            <button class="gradient-button w-full">Log Inventory</button>
+          </form>
+          <div class="mt-8"><h3 class="text-lg font-semibold text-gray-700">Recent Deliveries</h3><div id="recent-inventory-list" class="mt-4 space-y-2"><p class="text-gray-500 text-center">No recent deliveries logged.</p></div></div>
+        </div>
+        <div id="staff-sales-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Track Sales</h2>
+          <form id="sales-form" class="space-y-6">
+            <div><label class="block text-gray-700 font-medium mb-2">Item Sold</label><select id="saleItem" class="w-full"><option value="birds">Birds</option><option value="eggs">Eggs</option></select></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Quantity</label><input type="number" id="saleQuantity" class="w-full" /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Total Revenue (GHS)</label><input type="number" id="salePrice" step="0.01" class="w-full" /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Sale Notes</label><textarea id="saleNotes" rows="3" class="w-full"></textarea></div>
+            <button class="gradient-button w-full">Log Sales</button>
+          </form>
+        </div>
+        <div id="staff-incidents-panel" class="tab-content hidden">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">Report Incident</h2>
+          <form id="incidents-form" class="space-y-6">
+            <div><label class="block text-gray-700 font-medium mb-2">Incident Type</label><select id="incidentType" class="w-full"><option value="mortality">Mortality</option><option value="disease">Disease Outbreak</option><option value="supply">Supply Shortage</option></select></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Incident Title</label><input id="incidentTitle" class="w-full" /></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Description</label><textarea id="incidentNotes" rows="5" class="w-full"></textarea></div>
+            <div><label class="block text-gray-700 font-medium mb-2">Photo Upload</label><input type="file" id="incidentPhoto" accept="image/*" class="w-full" /></div>
+            <button class="gradient-button w-full">Report Incident</button>
+          </form>
+        </div>
+        <div id="staff-assets-panel" class="tab-content hidden"><h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">My Assigned Assets</h2><div id="staff-asset-list" class="space-y-4"><p class="text-gray-500 text-center">No assets assigned.</p></div></div>
+        <div id="staff-tasks-panel" class="tab-content hidden"><h2 class="text-xl font-semibold text-gray-700 mb-6 text-center">My Work Orders</h2><div id="staff-task-list" class="space-y-4"><p class="text-gray-500 text-center">No tasks assigned.</p></div></div>
+      </div>
+    </div>
+
+    <!-- PUBLIC PAGE -->
+    <div id="public-page" class="hidden w-full max-w-4xl">
+      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl mb-4">
+        <h1 class="text-3xl font-bold text-center text-gray-800">NSA Customer Portal</h1>
+        <div class="mt-2 text-center text-xs text-gray-400">User ID: <span id="customer-user-id">Loading...</span></div>
+        <div class="mt-2 text-center"><button id="show-login-portal" class="text-sm text-teal-600 hover:underline">Internal Sign-in</button></div>
+      </div>
+      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl">
+        <div class="flex justify-center space-x-2 md:space-x-4 mb-8" id="public-tabs">
+          <button id="marketplace-tab" class="tab-button active">Marketplace</button>
+          <button id="order-tracking-tab" class="tab-button">Track Order</button>
+          <button id="traceability-tab" class="tab-button">Traceability</button>
+        </div>
+        <div id="marketplace-panel" class="tab-content space-y-8">
+          <div class="relative w-full h-72 rounded-xl overflow-hidden shadow-lg bg-gray-200 flex items-center justify-center text-gray-600">Hero</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="card p-6 bg-white rounded-xl shadow-lg"><h3 class="text-xl font-bold text-gray-800">Live Birds</h3><p class="text-gray-500 mt-1">Healthy birds.</p><button id="buy-birds" class="gradient-button mt-4 w-full">Order Now</button></div>
+            <div class="card p-6 bg-white rounded-xl shadow-lg"><h3 class="text-xl font-bold text-gray-800">Fresh Eggs</h3><p class="text-gray-500 mt-1">Farm-fresh eggs.</p><button id="buy-eggs" class="gradient-button mt-4 w-full">Order Now</button></div>
+          </div>
+          <div id="order-form-container" class="mt-8 hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Place Your Order</h2>
+            <form id="order-form" class="space-y-6">
+              <div><label class="block text-gray-700 font-medium mb-2">Your Name</label><input id="customerName" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Email</label><input id="customerEmail" type="email" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Product</label><input id="product" class="w-full bg-gray-200" readonly required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Quantity</label><input id="quantity" type="number" class="w-full" required /></div>
+              <div><label class="block text-gray-700 font-medium mb-2">Payment Method</label><select id="paymentMethod" class="w-full"><option value="memo">Memo</option><option value="bank-transfer">Bank Transfer</option><option value="card">Card</option></select></div>
+              <button class="gradient-button w-full">Submit Order Request</button>
+            </form>
+          </div>
+        </div>
+        <div id="order-tracking-panel" class="tab-content hidden">
+          <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Track Your Order</h2>
+          <div class="space-y-4"><div><label class="block text-gray-700 font-medium mb-2">Order ID</label><input id="order-id-input" class="w-full" /></div><button id="track-order-button" class="gradient-button w-full">Track Order</button></div>
+          <div id="tracking-result" class="mt-8 p-6 bg-gray-50 rounded-lg shadow-inner hidden">
+            <h3 class="text-xl font-semibold text-center mb-4 text-emerald-600">Order Details</h3>
+            <div class="space-y-2 text-gray-700">
+              <div class="flex justify-between"><span class="font-medium">Order ID:</span><span id="result-order-id"></span></div>
+              <div class="flex justify-between"><span class="font-medium">Product:</span><span id="result-product"></span></div>
+              <div class="flex justify-between"><span class="font-medium">Quantity:</span><span id="result-quantity"></span></div>
+              <div class="flex justify-between"><span class="font-medium">Payment Method:</span><span id="result-payment-method" class="text-sm text-right"></span></div>
+              <div class="flex justify-between"><span class="font-medium">Current Status:</span><span id="result-status" class="font-bold text-blue-500"></span></div>
+              <div class="items-start"><span class="font-medium">Delivery History:</span><ul id="result-delivery-history" class="list-disc list-inside text-sm text-gray-600 ml-4"></ul></div>
             </div>
-            `;
-        };
-        
-        db.collection(`artifacts/${appId}/public/data/orders`).onSnapshot(snapshot => {
-            ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAdminList(ordersData, 'admin-orders-list', renderAdminOrder);
-            updateAdminAnalytics();
+          </div>
+          <div id="tracking-error" class="mt-8 p-6 bg-red-50 text-red-700 border border-red-200 rounded-lg hidden"><p class="text-center font-medium">Order not found.</p></div>
+        </div>
+        <div id="traceability-panel" class="tab-content hidden">
+          <h2 class="text-2xl font-semibold text-gray-700 text-center mb-6">Validate Product Traceability</h2>
+          <div class="space-y-4"><div><label class="block text-gray-700 font-medium mb-2">Batch ID</label><input id="batch-id-input" class="w-full" /></div><button id="validate-batch-button" class="gradient-button w-full">Validate Batch</button></div>
+          <div id="validation-result" class="mt-8 p-6 bg-gray-50 rounded-lg shadow-inner hidden">
+            <h3 class="text-xl font-semibold text-center mb-4 text-emerald-600">Batch Details</h3>
+            <div class="space-y-2 text-gray-700">
+              <div class="flex justify-between"><span class="font-medium">Batch ID:</span><span id="result-batch-id"></span></div>
+              <div class="flex justify-between"><span class="font-medium">Coop ID:</span><span id="result-coop-id"></span></div>
+              <div class="flex justify-between"><span class="font-medium">Bird Count:</span><span id="result-bird-count"></span></div>
+              <div class="flex justify-between"><span class="font-medium">Feed Type:</span><span id="result-feed-type"></span></div>
+              <div class="items-start"><span class="font-medium">Hash:</span><span id="result-blockchain-hash" class="text-xs font-mono text-gray-600 break-all text-right"></span></div>
+              <div class="items-start"><span class="font-medium">Notes:</span><span id="result-batch-notes" class="text-xs text-gray-600 text-right"></span></div>
+            </div>
+          </div>
+          <div id="validation-error" class="mt-8 p-6 bg-red-50 text-red-700 border border-red-200 rounded-lg hidden"><p class="text-center font-medium">Batch not found.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mt-8 text-center text-gray-500 text-sm"><p>powered by MulticomIOT</p></footer>
+
+  <!-- Modal -->
+  <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-xl font-bold mb-2"></h3><p id="modal-message" class="text-gray-700 mb-4"></p><button id="modal-close" class="gradient-button w-full">OK</button></div></div>
+
+  <!-- Firebase + libs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import { getFirestore, addDoc, collection, doc, getDoc, onSnapshot, query, where, serverTimestamp, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+    import { getStorage, ref as sref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-storage.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-functions.js";
+
+    import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
+    import autoTable from "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.js";
+    import "https://unpkg.com/xlsx/dist/xlsx.full.min.js";
+
+    // CONFIG
+    const appId = 'nsa-miot';
+    const firebaseConfig = {
+      apiKey: "AIzaSyDDbxNeMpLncUVPJtmtsFzNq0zLA9nHB_U",
+      authDomain: "nsa-miot.firebaseapp.com",
+      projectId: "nsa-miot",
+      storageBucket: "nsa-miot.firebasestorage.app",
+      messagingSenderId: "1078189349427",
+      appId: "1:1078189349427:web:9c4d6503c71da21fd2a146",
+      measurementId: "G-9RFX2052QE"
+    };
+
+    // INIT
+    let app, auth, db, storage, functions;
+    try { app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app); storage = getStorage(app); functions = getFunctions(app); }
+    catch(e){ console.error('Firebase init failed', e); showModal('Initialization Error', 'Failed to initialize Firebase.'); }
+
+    // Elements
+    const loginPage = document.getElementById('login-page');
+    const adminPage = document.getElementById('admin-page');
+    const staffPage = document.getElementById('staff-page');
+    const publicPage = document.getElementById('public-page');
+
+    function showPage(name){ [loginPage,adminPage,staffPage,publicPage].forEach(p=>p.classList.add('hidden')); ({login:loginPage,admin:adminPage,staff:staffPage,public:publicPage}[name]).classList.remove('hidden'); }
+
+    // Modal utils
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    document.getElementById('modal-close').onclick = () => modal.style.display='none';
+    function showModal(title, html){ modalTitle.textContent=title; modalMessage.innerHTML=html; modal.style.display='flex'; }
+
+    // Auth gate with roles via custom claims
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ showPage('login'); return; }
+      try{
+        const token = await user.getIdTokenResult(true);
+        const role = token.claims.role; // 'admin'|'staff'|undefined
+        if(role==='admin'){ document.getElementById('admin-user-id').textContent=user.uid; showPage('admin'); }
+        else if(role==='staff'){ document.getElementById('staff-user-id').textContent=user.uid; showPage('staff'); }
+        else if(user.isAnonymous){ document.getElementById('customer-user-id').textContent=user.uid; showPage('public'); }
+        else { await signOut(auth); showModal('Access Denied','Your account does not have access to an internal portal.'); showPage('login'); }
+      }catch(err){ console.error(err); showPage('login'); }
+    });
+
+    // Login actions
+    document.getElementById('login-form').addEventListener('submit', async (e)=>{
+      e.preventDefault(); const email=emailInput.value.trim(); const pw=passwordInput.value;
+      try{ await signInWithEmailAndPassword(auth,email,pw); }catch(err){ console.error(err); showModal('Login Failed','Invalid email or password.'); }
+    });
+    const emailInput=document.getElementById('email'); const passwordInput=document.getElementById('password');
+    document.getElementById('google-login-button').onclick=async()=>{ try{ await signInWithPopup(auth,new GoogleAuthProvider()); }catch(err){ console.error(err); showModal('Google Login Failed','Try again.'); } };
+    document.getElementById('show-public-portal').onclick=()=> signInAnonymously(auth).catch(err=>{ console.error(err); showModal('Authentication Failed','Could not sign in anonymously.'); });
+    document.getElementById('admin-sign-out').onclick=()=>signOut(auth);
+    document.getElementById('staff-sign-out').onclick=()=>signOut(auth);
+    document.getElementById('show-login-portal').onclick=()=>signOut(auth);
+
+    // Scoped tab switching
+    function wireTabs(containerId, prefix){
+      const container=document.getElementById(containerId);
+      container.querySelectorAll('.tab-button').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          container.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+          container.parentElement.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
+          btn.classList.add('active');
+          const targetId = btn.id.replace(`${prefix}-`,``) + '-panel';
+          document.getElementById(`${prefix}-${targetId}`).classList.remove('hidden');
         });
-        db.collection(`artifacts/${appId}/public/data/incidents`).onSnapshot(snapshot => {
-            incidentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAdminList(incidentsData, 'admin-incidents-list', renderAdminIncident);
-            renderAdminList(incidentsData, 'regulator-incidents', renderAdminIncident);
-            updateAdminAnalytics();
-        });
-        db.collection(`artifacts/${appId}/public/data/warehouse_deliveries`).onSnapshot(snapshot => {
-            deliveriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            updateAdminAnalytics();
-        });
-        db.collection(`artifacts/${appId}/public/data/sales`).onSnapshot(snapshot => {
-            salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAdminList(salesData, 'admin-sales-list', renderAdminSale);
-            updateAdminAnalytics();
-        });
-        db.collection(`artifacts/${appId}/public/data/inventory`).onSnapshot(snapshot => {
-            const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAdminList(logs, 'admin-inventory-list', renderAdminInventory);
-        });
-        db.collection(`artifacts/${appId}/public/data/batches`).onSnapshot(snapshot => {
-            const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            document.getElementById('regulator-traceability').innerHTML = logs.map(log => `<div class="list-item flex-col items-start"><p class="font-medium">Batch ID: ${log.id}</p><p class="text-xs">Coop: ${log.coopId}, Birds: ${log.birdCount}</p></div>`).join('');
-        });
-        db.collection(`artifacts/${appId}/public/data/assets`).onSnapshot(snapshot => {
-            const assets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            document.getElementById('admin-asset-list').innerHTML = assets.map(asset => `
-                <div class="list-item flex-col items-start">
-                    <span class="font-bold text-gray-800">${asset.name}</span>
-                    <span class="text-sm text-gray-500">Type: ${asset.type}</span>
-                    <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
-                </div>
-            `).join('');
-        });
-        
-        db.collection(`artifacts/${appId}/public/data/warehouse_stock`).onSnapshot(snapshot => {
-            const stockItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const stockListHtml = stockItems.map(item => `
-                <div class="list-item">
-                    <span class="font-medium text-gray-700">${item.itemName} (${item.itemType})</span>
-                    <span class="text-teal-600 font-semibold">${item.quantity} units</span>
-                </div>
-            `).join('');
-            document.getElementById('warehouse-stock-list').innerHTML = stockListHtml || '<p class="text-gray-500">No stock items found.</p>';
-            const dispatchDropdown = document.getElementById('dispatch-item-name');
-            dispatchDropdown.innerHTML = '<option value="">-- Select an item --</option>' + stockItems.map(item => `<option value="${item.id}">${item.itemName} (${item.quantity} in stock)</option>`).join('');
-        });
-        
-        db.collection(`artifacts/${appId}/public/data/work_orders`).onSnapshot(snapshot => {
-            const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAdminList(tasks, 'admin-task-list', renderAdminTask);
-        });
+      });
+    }
+    wireTabs('admin-tabs','admin');
+    wireTabs('staff-tabs','staff');
+    wireTabs('public-tabs','');
 
-        db.collection(`artifacts/${appId}/public/data/ble_logs`).onSnapshot(snapshot => {
-            const bleLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            document.getElementById('ble-tracking-list').innerHTML = bleLogs.map(log => `
-                <div class="list-item flex-col items-start">
-                    <span class="font-bold text-gray-800">${log.deviceName}</span>
-                    <span class="text-sm text-gray-500">User ID: ${log.userId}</span>
-                    <span class="text-xs text-gray-400">Lat/Lng: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}</span>
-                    <span class="text-xs text-gray-400">Timestamp: ${toLocalStringSafe(log.timestamp)}</span>
-                </div>
-            `).join('');
-        });
+    // Public tabs (fix id mismatch)
+    function showPublicTab(tab){
+      const container=document.getElementById('public-page');
+      container.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+      container.querySelectorAll('.tab-content').forEach(p=>p.classList.add('hidden'));
+      document.getElementById(`${tab}-tab`).classList.add('active');
+      document.getElementById(`${tab}-panel`).classList.remove('hidden');
+    }
+    document.getElementById('marketplace-tab').onclick=()=>{ showPublicTab('marketplace'); orderFormContainer.classList.add('hidden'); };
+    document.getElementById('order-tracking-tab').onclick=()=> showPublicTab('order-tracking');
+    document.getElementById('traceability-tab').onclick=()=> showPublicTab('traceability');
 
-        // --- Staff App Logic ---
-        const staffTabs = ['inventory', 'sales', 'incidents', 'assets', 'tasks'];
-        const staffContainer = document.getElementById('staff-page');
-        staffTabs.forEach(tab => {
-            document.getElementById(`staff-${tab}-tab`).onclick = () => {
-                staffContainer.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-                staffContainer.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                document.getElementById(`staff-${tab}-tab`).classList.add('active');
-                document.getElementById(`staff-${tab}-panel`).classList.remove('hidden');
-            };
-        });
+    // Datasets
+    let ordersData=[], salesData=[], incidentsData=[], deliveriesData=[];
 
-        auth.onAuthStateChanged(user => {
-            if (user && !user.isAnonymous) {
-                db.collection(`artifacts/${appId}/users/${user.uid}/inventory`).onSnapshot(snapshot => {
-                    const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderStaffList(logs, 'recent-inventory-list', log => `
-                        <div class="bg-gray-50 rounded-lg p-3 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                            <div>
-                                <p class="font-medium text-gray-800">${log.itemName} (${log.itemType})</p>
-                                <p class="text-sm text-gray-500">Coop ID: ${log.coopId}</p>
-                            </div>
-                            <p class="text-sm text-teal-600 font-semibold mt-2 sm:mt-0">${log.quantity} units</p>
-                        </div>
-                    `);
-                });
-                db.collection(`artifacts/${appId}/public/data/assets`).where('assignedTo', '==', user.uid).onSnapshot(snapshot => {
-                    const assets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderStaffList(assets, 'staff-asset-list', asset => `
-                        <div class="dashboard-card flex flex-col items-start">
-                            <span class="text-lg font-bold text-gray-800">${asset.name}</span>
-                            <span class="text-sm text-gray-500 mt-1">Type: ${asset.type}</span>
-                            <span class="text-sm text-gray-500">Assigned to: ${asset.assignedTo || 'Unassigned'}</span>
-                            <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${asset.status === 'Available' ? 'bg-green-500' : 'bg-red-500'}">${asset.status}</span>
-                        </div>
-                    `);
-                });
-                db.collection(`artifacts/${appId}/public/data/work_orders`).where('assignedTo', '==', user.uid).onSnapshot(snapshot => {
-                    const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderStaffList(tasks, 'staff-task-list', renderStaffTask);
-                });
-            }
-        });
+    // Helpers
+    function toLocalStringSafe(ts){ if(!ts) return 'N/A'; const d= ts.toDate? ts.toDate() : (ts instanceof Date? ts:null); return d? d.toLocaleString(): 'N/A'; }
+    function requireAuth(){ if(!auth.currentUser){ showModal('Not signed in','Please sign in to continue.'); return false; } return true; }
 
-        function renderStaffList(items, containerId, renderer) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = items.length ? items.map(item => renderer(item)).join('') : `<p class="text-gray-500 text-center">No items found.</p>`;
-        }
+    function renderList(items, containerId, renderer){ const el=document.getElementById(containerId); el.innerHTML = items.length? items.map(renderer).join('') : '<p class="text-center text-gray-500">No data found.</p>'; }
 
-        const renderStaffTask = (task) => {
-            const statusColor = task.status === 'Completed' ? 'bg-green-500' : 'bg-blue-500';
-            return `
-                <div class="dashboard-card flex flex-col items-start">
-                    <div class="flex justify-between w-full">
-                        <span class="text-lg font-bold text-gray-800">${task.title}</span>
-                        <span class="text-xs font-semibold px-2 py-1 rounded-full text-white ${statusColor}">${task.status || 'Assigned'}</span>
-                    </div>
-                    <p class="text-sm text-gray-500 mt-1">${task.description}</p>
-                    <p class="text-xs text-gray-400 mt-1">Due: ${task.dueDate}</p>
-                    ${task.status !== 'Completed' ? `<button onclick="updateTaskStatus('${task.id}', 'Completed')" class="gradient-button mt-4 w-full text-sm py-2">Mark as Complete</button>` : ''}
-                </div>
-            `;
-        };
+    // Snapshots
+    const col = (path)=>collection(db, path);
+    onSnapshot(col(`artifacts/${appId}/public/data/orders`),(snap)=>{ ordersData=snap.docs.map(d=>({id:d.id,...d.data()})); renderList(ordersData,'admin-orders-list', renderAdminOrder); updateAdminAnalytics(); });
+    onSnapshot(col(`artifacts/${appId}/public/data/sales`),(snap)=>{ salesData=snap.docs.map(d=>({id:d.id,...d.data()})); renderList(salesData,'admin-sales-list', renderAdminSale); updateAdminAnalytics(); });
+    onSnapshot(col(`artifacts/${appId}/public/data/incidents`),(snap)=>{ incidentsData=snap.docs.map(d=>({id:d.id,...d.data()})); renderList(incidentsData,'admin-incidents-list', renderAdminIncident); renderList(incidentsData,'regulator-incidents', renderAdminIncident); updateAdminAnalytics(); });
+    onSnapshot(col(`artifacts/${appId}/public/data/warehouse_deliveries`),(snap)=>{ deliveriesData=snap.docs.map(d=>({id:d.id,...d.data()})); updateAdminAnalytics(); });
+    onSnapshot(col(`artifacts/${appId}/public/data/inventory`),(snap)=>{ const logs=snap.docs.map(d=>({id:d.id,...d.data()})); renderList(logs,'admin-inventory-list', renderAdminInventory); });
+    onSnapshot(col(`artifacts/${appId}/public/data/batches`),(snap)=>{ const logs=snap.docs.map(d=>({id:d.id,...d.data()})); document.getElementById('regulator-traceability').innerHTML = logs.map(l=>`<div class='list-item flex-col items-start'><p class='font-medium'>Batch ID: ${l.id}</p><p class='text-xs'>Coop: ${l.coopId}, Birds: ${l.birdCount}</p></div>`).join(''); });
+    onSnapshot(col(`artifacts/${appId}/public/data/assets`),(snap)=>{ const assets=snap.docs.map(d=>({id:d.id,...d.data()})); document.getElementById('admin-asset-list').innerHTML = assets.map(a=>`<div class='list-item flex-col items-start'><span class='font-bold text-gray-800'>${a.name}</span><span class='text-sm text-gray-500'>Type: ${a.type}</span><span class='text-sm text-gray-500'>Assigned to: ${a.assignedTo||'Unassigned'}</span><span class='text-xs font-semibold px-2 py-1 rounded-full text-white ${a.status==='Available'?'bg-green-500':'bg-red-500'}'>${a.status||'Available'}</span></div>`).join(''); });
+    onSnapshot(col(`artifacts/${appId}/public/data/warehouse_stock`),(snap)=>{ const items=snap.docs.map(d=>({id:d.id,...d.data()})); const listHtml = items.map(i=>`<div class='list-item'><span class='font-medium text-gray-700'>${i.itemName} (${i.itemType})</span><span class='text-teal-600 font-semibold'>${i.quantity} units</span></div>`).join(''); document.getElementById('warehouse-stock-list').innerHTML = listHtml || '<p class="text-gray-500">No stock items found.</p>'; const dd=document.getElementById('dispatch-item-name'); dd.innerHTML='<option value="">-- Select an item --</option>'+ items.map(i=>`<option value='${i.id}'>${i.itemName} (${i.quantity} in stock)</option>`).join(''); });
+    onSnapshot(col(`artifacts/${appId}/public/data/work_orders`),(snap)=>{ const tasks=snap.docs.map(d=>({id:d.id,...d.data()})); renderList(tasks,'admin-task-list', renderAdminTask); });
+    onSnapshot(col(`artifacts/${appId}/public/data/ble_logs`),(snap)=>{ const logs=snap.docs.map(d=>({id:d.id,...d.data()})); document.getElementById('ble-tracking-list').innerHTML = logs.map(l=>`<div class='list-item flex-col items-start'><span class='font-bold text-gray-800'>${l.deviceName}</span><span class='text-sm text-gray-500'>User ID: ${l.userId}</span><span class='text-xs text-gray-400'>Lat/Lng: ${Number(l.latitude).toFixed(4)}, ${Number(l.longitude).toFixed(4)}</span><span class='text-xs text-gray-400'>Timestamp: ${toLocalStringSafe(l.timestamp)}</span></div>`).join(''); });
 
-        window.updateTaskStatus = async (taskId, newStatus) => {
-            if (!requireAuthOrModal()) return;
-            const taskRef = db.collection(`artifacts/${appId}/public/data/work_orders`).doc(taskId);
-            try {
-                await taskRef.update({
-                    status: newStatus,
-                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                showModal('Success!', 'Task status updated successfully.');
-            } catch (error) {
-                console.error("Error updating task status:", error);
-                showModal('Error', 'Failed to update task status. Please try again.');
-            }
-        };
+    // Staff listeners (private)
+    onAuthStateChanged(auth, user=>{
+      if(user && !user.isAnonymous){
+        const invRef = collection(db, `artifacts/${appId}/users/${user.uid}/inventory`);
+        onSnapshot(query(invRef),(snap)=>{ const logs=snap.docs.map(d=>({id:d.id,...d.data()})); renderList(logs,'recent-inventory-list', log=>`<div class='bg-gray-50 rounded-lg p-3 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center'><div><p class='font-medium text-gray-800'>${log.itemName} (${log.itemType})</p><p class='text-sm text-gray-500'>Coop ID: ${log.coopId}</p></div><p class='text-sm text-teal-600 font-semibold mt-2 sm:mt-0'>${log.quantity} units</p></div>`); });
+        const assetsRef = collection(db, `artifacts/${appId}/public/data/assets`);
+        onSnapshot(query(assetsRef, where('assignedTo','==',user.uid)),(snap)=>{ const as=snap.docs.map(d=>({id:d.id,...d.data()})); renderList(as,'staff-asset-list', a=>`<div class='dashboard-card flex flex-col items-start'><span class='text-lg font-bold text-gray-800'>${a.name}</span><span class='text-sm text-gray-500 mt-1'>Type: ${a.type}</span><span class='text-sm text-gray-500'>Assigned to: ${a.assignedTo||'Unassigned'}</span><span class='text-xs font-semibold px-2 py-1 rounded-full text-white ${a.status==='Available'?'bg-green-500':'bg-red-500'}'>${a.status||'Available'}</span></div>`); });
+        const tasksRef = collection(db, `artifacts/${appId}/public/data/work_orders`);
+        onSnapshot(query(tasksRef, where('assignedTo','==',user.uid)),(snap)=>{ const ts=snap.docs.map(d=>({id:d.id,...d.data()})); renderList(ts,'staff-task-list', renderStaffTask); });
+      }
+    });
 
-        document.getElementById('inventory-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!requireAuthOrModal()) return;
-            const data = {
-                coopId: document.getElementById('coop-id').value,
-                itemType: document.getElementById('itemType').value,
-                itemName: document.getElementById('itemName').value,
-                quantity: parseInt(document.getElementById('quantity').value, 10),
-                deliveryNotes: document.getElementById('deliveryNotes').value,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: auth.currentUser.uid
-            };
-            try {
-                await db.collection(`artifacts/${appId}/users/${auth.currentUser.uid}/inventory`).add(data);
-                showModal('Success!', 'Inventory logged successfully.');
-                document.getElementById('inventory-form').reset();
-            } catch (error) {
-                console.error("Error logging inventory: ", error);
-                showModal('Error', 'Failed to log inventory. Please check the console.');
-            }
-        };
+    // Renderers
+    function renderAdminOrder(o){ return `<div class='list-item flex-col items-start'><span class='font-bold text-gray-800'>${o.product} × ${o.quantity}</span><span class='text-sm text-gray-500'>${o.customerName} • ${o.customerEmail}</span><span class='text-xs text-gray-400'>${toLocalStringSafe(o.timestamp)} • ${o.status}</span></div>`; }
+    function renderAdminSale(s){ return `<div class='list-item flex-col items-start'><span class='font-bold text-gray-800'>${s.saleItem} × ${s.saleQuantity}</span><span class='text-sm text-gray-500'>GHS ${(Number(s.salePrice)||0).toFixed(2)}</span><span class='text-xs text-gray-400'>${toLocalStringSafe(s.timestamp)}</span></div>`; }
+    function renderAdminIncident(i){ return `<div class='list-item flex-col items-start'><span class='font-bold text-gray-800'>${i.incidentTitle||i.incidentType}</span><span class='text-sm text-gray-500'>${i.incidentType} • ${i.status}</span><span class='text-xs text-gray-400'>${toLocalStringSafe(i.timestamp)}</span></div>`; }
+    function renderAdminInventory(l){ return `<div class='list-item'><span class='font-medium text-gray-700'>${l.itemName} (${l.itemType})</span><span class='text-teal-600 font-semibold'>${l.quantity} units</span></div>`; }
+    function renderAdminTask(t){ const c=t.status==='Completed'?'bg-green-500':'bg-blue-500'; return `<div class='list-item flex-col items-start'><div class='flex justify-between w-full'><span class='text-lg font-bold text-gray-800'>${t.title}</span><span class='text-xs font-semibold px-2 py-1 rounded-full text-white ${c}'>${t.status||'Assigned'}</span></div><p class='text-sm text-gray-500 mt-1'>${t.description}</p><p class='text-xs text-gray-400 mt-1'>Due: ${t.dueDate||'—'}</p>${t.status!=='Completed'?`<button class='gradient-button mt-3 w-full text-sm' onclick="updateTaskStatus('${t.id}','Completed')">Mark as Complete</button>`:''}</div>`; }
+    function renderStaffTask(t){ const c=t.status==='Completed'?'bg-green-500':'bg-blue-500'; return `<div class='dashboard-card flex flex-col items-start'><div class='flex justify-between w-full'><span class='text-lg font-bold text-gray-800'>${t.title}</span><span class='text-xs font-semibold px-2 py-1 rounded-full text-white ${c}'>${t.status||'Assigned'}</span></div><p class='text-sm text-gray-500 mt-1'>${t.description}</p><p class='text-xs text-gray-400 mt-1'>Due: ${t.dueDate||'—'}</p>${t.status!=='Completed'?`<button class='gradient-button mt-4 w-full text-sm' onclick="updateTaskStatus('${t.id}','Completed')">Mark as Complete</button>`:''}</div>`; }
 
-        document.getElementById('sales-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!requireAuthOrModal()) return;
-            const data = {
-                saleItem: document.getElementById('saleItem').value,
-                saleQuantity: parseInt(document.getElementById('saleQuantity').value, 10),
-                salePrice: parseFloat(document.getElementById('salePrice').value),
-                saleNotes: document.getElementById('saleNotes').value,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: auth.currentUser.uid
-            };
-            try {
-                await db.collection(`artifacts/${appId}/users/${auth.currentUser.uid}/sales`).add(data);
-                showModal('Success!', 'Sales logged successfully.');
-                document.getElementById('sales-form').reset();
-            } catch (error) {
-                console.error("Error logging sales: ", error);
-                showModal('Error', 'Failed to log sales. Please check the console.');
-            }
-        };
+    // Analytics updater
+    function updateAdminAnalytics(){
+      const totalRevenue = salesData.reduce((s,x)=> s + (Number(x.salePrice)||0), 0);
+      const mortalityCount = incidentsData.filter(i=>i.incidentType==='mortality').length;
+      const mortalityTrend = mortalityCount>5? 'High mortality detected. Immediate action required.' : 'Mortality is within normal range.';
+      const totalFeedQty = deliveriesData.filter(i=>i.itemType==='feed').reduce((s,it)=> s + (Number(it.quantity)||0), 0);
+      const feedForecast = `Total feed logged: ${totalFeedQty} units. Forecast pending.`;
+      document.getElementById('total-revenue').textContent = `GHS ${totalRevenue.toFixed(2)}`;
+      document.getElementById('total-incidents').textContent = incidentsData.length;
+      document.getElementById('total-inventory').textContent = deliveriesData.length;
+      document.getElementById('mortality-trend').textContent = mortalityTrend;
+      document.getElementById('feed-forecast').textContent = feedForecast;
+      document.getElementById('report-total-revenue').textContent = `GHS ${totalRevenue.toFixed(2)}`;
+      document.getElementById('report-total-incidents').textContent = incidentsData.length;
+      document.getElementById('report-total-deliveries').textContent = deliveriesData.length;
+    }
 
-        document.getElementById('incidents-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!requireAuthOrModal()) return;
-            const photoFile = document.getElementById('incidentPhoto').files[0];
-            let photoUrl = null;
-            try {
-                if (photoFile) {
-                    const r = storage.ref(`incidents/${Date.now()}_${photoFile.name}`);
-                    await r.put(photoFile);
-                    photoUrl = await r.getDownloadURL();
-                }
-                const data = {
-                    incidentType: document.getElementById('incidentType').value,
-                    incidentTitle: document.getElementById('incidentTitle').value,
-                    incidentNotes: document.getElementById('incidentNotes').value,
-                    photoUrl,
-                    status: 'Pending',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    userId: auth.currentUser.uid
-                };
-                await db.collection(`artifacts/${appId}/users/${auth.currentUser.uid}/incidents`).add(data);
-                showModal('Success!', 'Incident reported successfully.');
-                document.getElementById('incidents-form').reset();
-            } catch (error) {
-                console.error("Error reporting incident: ", error);
-                showModal('Error', 'Failed to report incident. Check your Firebase Storage rules.');
-            }
-        };
+    // Task status update
+    window.updateTaskStatus = async (taskId,newStatus)=>{
+      try{ await updateDoc(doc(db,`artifacts/${appId}/public/data/work_orders`,taskId),{ status:newStatus, completedAt:serverTimestamp() }); showModal('Success!','Task status updated.'); }
+      catch(err){ console.error(err); showModal('Error','Failed to update task.'); }
+    };
 
-        // --- Public Portal Logic ---
-        document.getElementById('public-marketplace-tab').onclick = () => {
-            showPublicTab('marketplace');
-            document.getElementById('order-form-container').classList.add('hidden');
-        };
-        document.getElementById('public-order-tracking-tab').onclick = () => showPublicTab('order-tracking');
-        document.getElementById('public-traceability-tab').onclick = () => showPublicTab('traceability');
+    // Staff forms
+    const invForm=document.getElementById('inventory-form');
+    invForm.onsubmit = async (e)=>{
+      e.preventDefault(); if(!requireAuth()) return;
+      const data={ coopId:document.getElementById('coop-id').value, itemType:itemType.value, itemName:itemName.value, quantity:parseInt(quantity.value,10), deliveryNotes:deliveryNotes.value, timestamp:serverTimestamp(), userId:auth.currentUser.uid };
+      try{ await addDoc(collection(db,`artifacts/${appId}/users/${auth.currentUser.uid}/inventory`), data); showModal('Success!','Inventory logged.'); invForm.reset(); }
+      catch(err){ console.error(err); showModal('Error','Failed to log inventory.'); }
+    };
 
-        const publicContainer = document.getElementById('public-page');
-        function showPublicTab(tab) {
-            publicContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            publicContainer.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-            document.getElementById(`public-${tab}-tab`).classList.add('active');
-            document.getElementById(`public-${tab}-panel`).classList.remove('hidden');
-        }
+    const salesForm=document.getElementById('sales-form');
+    salesForm.onsubmit = async (e)=>{
+      e.preventDefault(); if(!requireAuth()) return;
+      const data={ saleItem:saleItem.value, saleQuantity:parseInt(saleQuantity.value,10), salePrice:parseFloat(salePrice.value), saleNotes:saleNotes.value, timestamp:serverTimestamp(), userId:auth.currentUser.uid };
+      try{ await addDoc(collection(db,`artifacts/${appId}/users/${auth.currentUser.uid}/sales`), data); showModal('Success!','Sales logged.'); salesForm.reset(); }
+      catch(err){ console.error(err); showModal('Error','Failed to log sales.'); }
+    };
 
-        document.getElementById('buy-birds').onclick = () => {
-            document.getElementById('product').value = 'Birds';
-            document.getElementById('order-form-container').classList.remove('hidden');
-            document.getElementById('order-form-container').scrollIntoView({ behavior: 'smooth' });
-        };
-        document.getElementById('buy-eggs').onclick = () => {
-            document.getElementById('product').value = 'Eggs';
-            document.getElementById('order-form-container').classList.remove('hidden');
-            document.getElementById('order-form-container').scrollIntoView({ behavior: 'smooth' });
-        };
-        
-        document.getElementById('order-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const orderData = {
-                customerName: document.getElementById('customerName').value,
-                customerEmail: document.getElementById('customerEmail').value,
-                product: document.getElementById('product').value,
-                quantity: parseInt(document.getElementById('quantity').value, 10),
-                paymentMethod: document.getElementById('paymentMethod').value,
-                status: 'Pending',
-                deliveryHistory: [{ status: 'Order Submitted', timestamp: firebase.firestore.FieldValue.serverTimestamp() }],
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            try {
-                const docRef = await db.collection(`artifacts/${appId}/public/data/orders`).add(orderData);
-                const orderId = docRef.id;
-                showModal('Order Submitted!', `Your order has been placed. Your Order ID is: <strong class="text-teal-600">${orderId}</strong>. Use this to track your order.`)
-                document.getElementById('order-form').reset();
-                document.getElementById('order-form-container').classList.add('hidden');
-            } catch (error) {
-                console.error("Error adding document: ", error);
-                showModal('Order Failed', 'There was an error submitting your order. Please try again.');
-            }
-        };
-        
-        document.getElementById('track-order-button').onclick = async () => {
-            const orderId = document.getElementById('order-id-input').value.trim();
-            if (!orderId) {
-                showModal('Input Required', 'Please enter your Order ID.');
-                return;
-            }
-            document.getElementById('tracking-result').classList.add('hidden');
-            document.getElementById('tracking-error').classList.add('hidden');
-            try {
-                const docSnap = await db.collection(`artifacts/${appId}/public/data/orders`).doc(orderId).get();
-                if (docSnap.exists) {
-                    const data = docSnap.data();
-                    document.getElementById('result-order-id').textContent = orderId;
-                    document.getElementById('result-product').textContent = data.product;
-                    document.getElementById('result-quantity').textContent = data.quantity;
-                    document.getElementById('result-payment-method').textContent = data.paymentMethod;
-                    document.getElementById('result-status').textContent = data.status;
+    const incForm=document.getElementById('incidents-form');
+    incForm.onsubmit = async (e)=>{
+      e.preventDefault(); if(!requireAuth()) return;
+      const file=document.getElementById('incidentPhoto').files[0]; let photoUrl=null;
+      try{ if(file){ const r=sref(storage,`incidents/${Date.now()}_${file.name}`); await uploadBytes(r,file); photoUrl=await getDownloadURL(r); }
+        const data={ incidentType:incidentType.value, incidentTitle:incidentTitle.value, incidentNotes:incidentNotes.value, photoUrl, status:'Pending', timestamp:serverTimestamp(), userId:auth.currentUser.uid };
+        await addDoc(collection(db,`artifacts/${appId}/users/${auth.currentUser.uid}/incidents`), data);
+        showModal('Success!','Incident reported.'); incForm.reset();
+      }catch(err){ console.error(err); showModal('Error','Failed to report incident.'); }
+    };
 
-                    const statusSpan = document.getElementById('result-status');
-                    statusSpan.classList.remove('text-blue-500', 'text-green-500', 'text-orange-500');
-                    if (data.status === 'Pending' || data.status === 'Processing') {
-                        statusSpan.classList.add('text-orange-500');
-                    } else if (data.status === 'Out for Delivery') {
-                        statusSpan.classList.add('text-blue-500');
-                    } else if (data.status === 'Delivered') {
-                        statusSpan.classList.add('text-green-500');
-                    }
-                    
-                    const historyList = document.getElementById('result-delivery-history');
-                    historyList.innerHTML = '';
-                    if (data.deliveryHistory && data.deliveryHistory.length > 0) {
-                        data.deliveryHistory.forEach(step => {
-                            const li = document.createElement('li');
-                            li.textContent = `${toLocalStringSafe(step.timestamp)}: ${step.status}`;
-                            historyList.appendChild(li);
-                        });
-                    } else {
-                        historyList.innerHTML = '<li>No delivery history available.</li>';
-                    }
-                    document.getElementById('tracking-result').classList.remove('hidden');
-                } else {
-                    document.getElementById('tracking-error').classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error("Error fetching document:", error);
-                showModal('Error', 'An error occurred while tracking your order. Check the console for details.');
-            }
-        };
+    // Public marketplace
+    const orderFormContainer=document.getElementById('order-form-container');
+    document.getElementById('buy-birds').onclick=()=>{ document.getElementById('product').value='Birds'; orderFormContainer.classList.remove('hidden'); orderFormContainer.scrollIntoView({behavior:'smooth'}); };
+    document.getElementById('buy-eggs').onclick=()=>{ document.getElementById('product').value='Eggs'; orderFormContainer.classList.remove('hidden'); orderFormContainer.scrollIntoView({behavior:'smooth'}); };
+    document.getElementById('order-form').onsubmit = async (e)=>{
+      e.preventDefault();
+      const orderData={ customerName:customerName.value, customerEmail:customerEmail.value, product:product.value, quantity:parseInt(quantity.value,10), paymentMethod:paymentMethod.value, status:'Pending', deliveryHistory:[{ status:'Order Submitted', timestamp:serverTimestamp() }], timestamp:serverTimestamp() };
+      try{ const ref = await addDoc(collection(db,`artifacts/${appId}/public/data/orders`), orderData); showModal('Order Submitted!',`Your Order ID is: <strong class='text-teal-600'>${ref.id}</strong>.`); e.target.reset(); orderFormContainer.classList.add('hidden'); }
+      catch(err){ console.error(err); showModal('Order Failed','Please try again.'); }
+    };
 
-        // --- Traceability Logic ---
-        document.getElementById('batch-generator-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!requireAuthOrModal()) return;
-            const formData = new FormData(document.getElementById('batch-generator-form'));
-            const data = Object.fromEntries(formData.entries());
-            data.timestamp = firebase.firestore.FieldValue.serverTimestamp();
-            data.userId = auth.currentUser.uid;
-            
-            const hashString = `${data.coopId}-${data.birdCount}-${data.feedType}-${new Date().toISOString()}-${Math.random()}`;
-            data.traceabilityHash = window.crypto.subtle ? 
-                await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashString))
-                .then(buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('')) :
-                'simulated_hash_' + Math.random().toString(36).substring(2, 15);
-            
-            try {
-                const docRef = await db.collection(`artifacts/${appId}/public/data/batches`).add(data);
-                const batchId = docRef.id;
-                document.getElementById('generated-batch-id').textContent = batchId;
-                document.getElementById('generated-qr-code').classList.remove('hidden');
-                showModal('Batch Generated!', `A new batch has been logged. The Batch ID is: <strong class="text-teal-600">${batchId}</strong>. This ID is linked to the traceability hash.`);
-                document.getElementById('batch-generator-form').reset();
-            } catch (error) {
-                console.error("Error adding batch document: ", error);
-                showModal('Error', 'Failed to generate a new batch. Please check the console for details.');
-            }
-        };
+    document.getElementById('track-order-button').onclick = async ()=>{
+      const orderId=document.getElementById('order-id-input').value.trim(); if(!orderId){ showModal('Input Required','Please enter your Order ID.'); return; }
+      document.getElementById('tracking-result').classList.add('hidden'); document.getElementById('tracking-error').classList.add('hidden');
+      try{ const snap=await getDoc(doc(db,`artifacts/${appId}/public/data/orders`,orderId));
+        if(snap.exists()){
+          const d=snap.data();
+          result_order_id.textContent=orderId; result_product.textContent=d.product; result_quantity.textContent=d.quantity; result_payment_method.textContent=d.paymentMethod;
+          const statusSpan=document.getElementById('result-status'); statusSpan.textContent=d.status; statusSpan.classList.remove('text-blue-500','text-green-500','text-orange-500');
+          if(['Pending','Processing'].includes(d.status)) statusSpan.classList.add('text-orange-500'); else if(d.status==='Out for Delivery') statusSpan.classList.add('text-blue-500'); else if(d.status==='Delivered') statusSpan.classList.add('text-green-500');
+          const ul=document.getElementById('result-delivery-history'); ul.innerHTML='';
+          (d.deliveryHistory||[]).forEach(step=>{ const li=document.createElement('li'); const jsDate = step.timestamp?.toDate? step.timestamp.toDate(): (step.timestamp instanceof Date? step.timestamp:null); li.textContent = jsDate? `${jsDate.toLocaleString()}: ${step.status}` : step.status; ul.appendChild(li); });
+          document.getElementById('tracking-result').classList.remove('hidden');
+        } else document.getElementById('tracking-error').classList.remove('hidden');
+      }catch(err){ console.error(err); showModal('Error','Error while tracking order.'); }
+    };
 
-        document.getElementById('copy-qr-code').onclick = () => {
-            const batchId = document.getElementById('generated-batch-id').textContent;
-            navigator.clipboard.writeText(batchId).then(() => {
-                showModal('Copied!', 'Batch ID has been copied to your clipboard.');
-            }).catch(err => {
-                showModal('Copy Error', 'Could not copy to clipboard. Please select and copy the text manually.');
-                console.error('Failed to copy text: ', err);
-            });
-        };
+    // Traceability
+    document.getElementById('batch-generator-form').onsubmit = async (e)=>{
+      e.preventDefault(); if(!requireAuth()) return;
+      const data={ coopId:coopId.value, birdCount:birdCount.value, feedType:feedType.value, batchNotes:batchNotes.value, timestamp:serverTimestamp(), userId:auth.currentUser.uid };
+      const hashString = `${data.coopId}-${data.birdCount}-${data.feedType}-${Date.now()}-${Math.random()}`;
+      const buffer = new TextEncoder().encode(hashString);
+      let digestHex = 'simulated_hash_'+Math.random().toString(36).slice(2);
+      if(crypto.subtle){ const digest=await crypto.subtle.digest('SHA-256', buffer); digestHex=Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+      data.blockchainHash = digestHex;
+      try{ const ref=await addDoc(collection(db,`artifacts/${appId}/public/data/batches`), data); generated_batch_id.textContent=ref.id; document.getElementById('generated-qr-code').classList.remove('hidden'); showModal('Batch Generated!',`Batch ID: <strong class='text-teal-600'>${ref.id}</strong>`); e.target.reset(); }
+      catch(err){ console.error(err); showModal('Error','Failed to generate batch.'); }
+    };
+    document.getElementById('copy-qr-code').onclick=()=>{ const id=generated_batch_id.textContent; navigator.clipboard.writeText(id).then(()=>showModal('Copied!','Batch ID copied.')).catch(()=>showModal('Copy Error','Select and copy manually.')); };
+    document.getElementById('validate-batch-button').onclick = async ()=>{
+      const batchId=document.getElementById('batch-id-input').value.trim(); if(!batchId){ showModal('Input Required','Enter a Batch ID.'); return; }
+      validation_result.classList.add('hidden'); validation_error.classList.add('hidden');
+      try{ const snap=await getDoc(doc(db,`artifacts/${appId}/public/data/batches`,batchId));
+        if(snap.exists()){
+          const d=snap.data(); result_batch_id.textContent=batchId; result_coop_id.textContent=d.coopId; result_bird_count.textContent=d.birdCount; result_feed_type.textContent=d.feedType; result_blockchain_hash.textContent=d.blockchainHash; result_batch_notes.textContent=d.batchNotes||''; validation_result.classList.remove('hidden');
+        } else validation_error.classList.remove('hidden');
+      }catch(err){ console.error(err); showModal('Error','Validation failed.'); }
+    };
 
-        document.getElementById('validate-batch-button').onclick = async () => {
-            const batchId = document.getElementById('batch-id-input').value.trim();
-            if (!batchId) {
-                showModal('Input Required', 'Please enter a Batch ID.');
-                return;
-            }
-            document.getElementById('validation-result').classList.add('hidden');
-            document.getElementById('validation-error').classList.add('hidden');
-            try {
-                const docSnap = await db.collection(`artifacts/${appId}/public/data/batches`).doc(batchId).get();
-                if (docSnap.exists) {
-                    const data = docSnap.data();
-                    document.getElementById('result-batch-id').textContent = batchId;
-                    document.getElementById('result-coop-id').textContent = data.coopId;
-                    document.getElementById('result-bird-count').textContent = data.birdCount;
-                    document.getElementById('result-feed-type').textContent = data.feedType;
-                    document.getElementById('result-blockchain-hash').textContent = data.traceabilityHash;
-                    document.getElementById('result-batch-notes').textContent = data.batchNotes;
-                    document.getElementById('validation-result').classList.remove('hidden');
-                } else {
-                    document.getElementById('validation-error').classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error("Error validating batch:", error);
-                showModal('Error', 'An error occurred during validation. Please check the console.');
-            }
-        };
+    // Warehouse
+    document.getElementById('warehouse-delivery-form').onsubmit = async (e)=>{
+      e.preventDefault(); if(!requireAuth()) return;
+      const data={ itemName:warehouse_item_name.value, itemType:warehouse_item_type.value, quantity:parseInt(warehouse_quantity.value,10), supplier:warehouse_supplier.value, timestamp:serverTimestamp(), adminId:auth.currentUser.uid };
+      try{
+        await addDoc(collection(db,`artifacts/${appId}/public/data/warehouse_deliveries`), data);
+        const stockRef = doc(db,`artifacts/${appId}/public/data/warehouse_stock`, data.itemName);
+        const stockSnap = await getDoc(stockRef);
+        if(stockSnap.exists()) await updateDoc(stockRef,{ quantity: (Number(stockSnap.data().quantity)||0)+data.quantity, timestamp:serverTimestamp()});
+        else await setDoc(stockRef,{ itemName:data.itemName, itemType:data.itemType, quantity:data.quantity, timestamp:serverTimestamp()});
+        showModal('Success!','Delivery logged & stock updated.'); e.target.reset();
+      }catch(err){ console.error(err); showModal('Error','Failed to log delivery.'); }
+    };
+    document.getElementById('dispatch-form').onsubmit = async (e)=>{
+      e.preventDefault(); if(!requireAuth()) return;
+      const itemId=dispatch_item_name.value; const qty=parseInt(dispatch_quantity.value,10); const staffUid=dispatch_staff_uid.value.trim();
+      if(!itemId||!qty||!staffUid){ showModal('Input Required','Fill all dispatch fields.'); return; }
+      try{
+        const stockRef=doc(db,`artifacts/${appId}/public/data/warehouse_stock`, itemId); const stockSnap=await getDoc(stockRef);
+        if(!stockSnap.exists() || (Number(stockSnap.data().quantity)||0) < qty){ showModal('Dispatch Failed','Not enough stock.'); return; }
+        await updateDoc(stockRef,{ quantity: (Number(stockSnap.data().quantity)||0)-qty, timestamp:serverTimestamp()});
+        await addDoc(collection(db,`artifacts/${appId}/public/data/dispatches`),{ itemName:stockSnap.data().itemName, quantity:qty, staffUid, timestamp:serverTimestamp(), adminId:auth.currentUser.uid });
+        await addDoc(collection(db,`artifacts/${appId}/users/${staffUid}/inventory`),{ itemName:stockSnap.data().itemName, itemType:stockSnap.data().itemType, quantity:qty, coopId:'Dispatch from Warehouse', deliveryNotes:`Dispatched by admin ${auth.currentUser.uid}`, timestamp:serverTimestamp() });
+        showModal('Dispatch Successful!`, `${qty} units dispatched.`);
+        e.target.reset();
+      }catch(err){ console.error(err); showModal('Error','Failed to dispatch item.'); }
+    };
 
-        // --- New Warehouse Forms Logic ---
-        document.getElementById('warehouse-delivery-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!requireAuthOrModal()) return;
-            const data = {
-                itemName: document.getElementById('warehouse-item-name').value,
-                itemType: document.getElementById('warehouse-item-type').value,
-                quantity: parseInt(document.getElementById('warehouse-quantity').value, 10),
-                supplier: document.getElementById('warehouse-supplier').value,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                adminId: auth.currentUser.uid
-            };
-            try {
-                await db.collection(`artifacts/${appId}/public/data/warehouse_deliveries`).add(data);
-                const stockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`).doc(data.itemName);
-                const stockSnap = await stockRef.get();
-                if (stockSnap.exists) {
-                    await stockRef.update({ quantity: stockSnap.data().quantity + data.quantity, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                } else {
-                    await stockRef.set({ itemName: data.itemName, itemType: data.itemType, quantity: data.quantity, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                }
-                showModal('Success!', 'Delivery logged and stock updated successfully.');
-                document.getElementById('warehouse-delivery-form').reset();
-            } catch (error) {
-                console.error("Error logging delivery: ", error);
-                showModal('Error', 'Failed to log delivery. Please check the console.');
-            }
-        };
+    // Reports
+    document.getElementById('download-pdf-report').onclick = ()=>{
+      const docx=new jsPDF(); docx.text('NSA Ecosystem Report',10,10); docx.setFontSize(12); docx.text(`Generated: ${new Date().toLocaleDateString()}`,10,20);
+      const sTable=salesData.map(s=>[s.id,s.saleItem,s.saleQuantity,`GHS ${(Number(s.salePrice)||0).toFixed(2)}`, toLocalStringSafe(s.timestamp)]);
+      autoTable(docx,{startY:30, head:[['ID','Item','Qty','Revenue','Date']], body:sTable});
+      const y=docx.lastAutoTable.finalY+10; const iTable=incidentsData.map(i=>[i.id,i.incidentTitle||'',i.incidentType,i.status,toLocalStringSafe(i.timestamp)]);
+      autoTable(docx,{startY:y, head:[['ID','Title','Type','Status','Date']], body:iTable});
+      docx.save('NSA_Report.pdf'); showModal('Download Complete','PDF report downloaded.');
+    };
+    document.getElementById('download-excel-report').onclick=()=>{
+      const rows=[["NSA Ecosystem Report"],[`Generated: ${new Date().toLocaleDateString()}`],[],["Sales Summary"],["ID","Item","Quantity","Revenue","Date"], ...salesData.map(s=>[s.id,s.saleItem,s.saleQuantity,Number(s.salePrice)||0,toLocalStringSafe(s.timestamp)]), [], ["Incident Summary"],["ID","Title","Type","Status","Date"], ...incidentsData.map(i=>[i.id,i.incidentTitle||'',i.incidentType,i.status,toLocalStringSafe(i.timestamp)])];
+      const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Report'); XLSX.writeFile(wb,'NSA_Report.xlsx'); showModal('Download Complete','Excel report downloaded.');
+    };
 
-        document.getElementById('dispatch-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!requireAuthOrModal()) return;
-            const itemName = document.getElementById('dispatch-item-name').value;
-            const quantity = parseInt(document.getElementById('dispatch-quantity').value, 10);
-            const staffUid = document.getElementById('dispatch-staff-uid').value;
-            
-            if (!itemName || !quantity || !staffUid) {
-                showModal('Input Required', 'Please fill in all dispatch fields.');
-                return;
-            }
-            try {
-                const stockRef = db.collection(`artifacts/${appId}/public/data/warehouse_stock`).doc(itemName);
-                const stockSnap = await stockRef.get();
-                if (!stockSnap.exists || stockSnap.data().quantity < quantity) {
-                    showModal('Dispatch Failed', 'Not enough stock available for this item.');
-                    return;
-                }
-                await stockRef.update({ quantity: stockSnap.data().quantity - quantity, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                const dispatchData = { itemName, quantity, staffUid, timestamp: firebase.firestore.FieldValue.serverTimestamp(), adminId: auth.currentUser.uid };
-                await db.collection(`artifacts/${appId}/public/data/dispatches`).add(dispatchData);
-                const staffInventoryData = { itemName, itemType: stockSnap.data().itemType, quantity, coopId: 'Dispatch from Warehouse', deliveryNotes: `Dispatched from warehouse by admin ${auth.currentUser.uid}`, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
-                await db.collection(`artifacts/${appId}/users/${staffUid}/inventory`).add(staffInventoryData);
-                showModal('Dispatch Successful!', `${quantity} units of ${itemName} dispatched to staff member.`);
-                document.getElementById('dispatch-form').reset();
-            } catch (error) {
-                console.error("Error dispatching item: ", error);
-                showModal('Error', 'Failed to dispatch item. Please check the console.');
-            }
-        };
-        
-        // Report Generation Logic
-        document.getElementById('download-pdf-report').onclick = () => {
-            if (!requireAuthOrModal()) return;
-            const doc = new jsPDF();
-            doc.text("NSA Ecosystem Report", 10, 10);
-            doc.setFontSize(12);
-            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 10, 20);
+    // BLE simulate
+    document.getElementById('simulate-ble-data').onclick=async()=>{
+      const mock=[{id:'staff1',name:'Nana Yaw'},{id:'staff2',name:'Aisha'},{id:'staff3',name:'Kofi Mensah'}];
+      const m=mock[Math.floor(Math.random()*mock.length)]; const lat=5.6148 + (Math.random()-0.5)*0.05; const lng=-0.1869 + (Math.random()-0.5)*0.05;
+      try{ await addDoc(collection(db,`artifacts/${appId}/public/data/ble_logs`),{ deviceName:`${m.name}'s ID Card`, userId:m.id, latitude:lat, longitude:lng, timestamp:serverTimestamp()}); showModal('BLE Log Simulated',`New BLE log for ${m.name}.`);}catch(err){ console.error(err); showModal('Error','Failed to simulate BLE data.'); }
+    };
 
-            const salesTable = salesData.map(s => [
-                s.id, s.saleItem, s.saleQuantity, `GHS ${(Number(s.salePrice)||0).toFixed(2)}`,
-                toLocalStringSafe(s.timestamp)
-            ]);
-            doc.autoTable({ startY: 30, head: [['ID','Item','Qty','Revenue','Date']], body: salesTable });
+    // Roles management (Callable Function)
+    const setRoleFn = httpsCallable(functions, 'setUserRole');
+    document.getElementById('set-role-form').onsubmit = async (e)=>{
+      e.preventDefault(); if(!requireAuth()) return;
+      const email=document.getElementById('role-email').value.trim(); const role=document.getElementById('role-value').value;
+      try{ await setRoleFn({ email, role }); showModal('Role Updated',`Set <strong>${role}</strong> for <strong>${email}</strong>.`); e.target.reset(); }
+      catch(err){ console.error(err); showModal('Error', 'Failed to set role. Ensure you are admin and Functions are deployed.'); }
+    };
 
-            const y = doc.lastAutoTable.finalY + 10;
-            const incidentsTable = incidentsData.map(i => [
-                i.id, i.incidentTitle, i.incidentType, i.status, toLocalStringSafe(i.timestamp)
-            ]);
-            doc.autoTable({ startY: y, head: [['ID','Title','Type','Status','Date']], body: incidentsTable });
-            
-            doc.save("NSA_Report.pdf");
-            showModal('Download Complete', 'PDF report has been generated and downloaded.');
-        };
+  </script>
 
-        document.getElementById('download-excel-report').onclick = () => {
-            if (!requireAuthOrModal()) return;
-            const reportData = [
-                ["NSA Ecosystem Report"], [`Generated: ${new Date().toLocaleDateString()}`], [],
-                ["Sales Summary"], ["ID", "Item", "Quantity", "Revenue", "Date"],
-                ...salesData.map(sale => [sale.id, sale.saleItem, sale.saleQuantity, sale.salePrice, toLocalStringSafe(sale.timestamp)]),
-                [],
-                ["Incident Summary"], ["ID", "Title", "Type", "Status", "Date"],
-                ...incidentsData.map(incident => [incident.id, incident.incidentTitle, incident.incidentType, incident.status, toLocalStringSafe(incident.timestamp)])
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(reportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Report");
-            XLSX.writeFile(wb, "NSA_Report.xlsx");
-            showModal('Download Complete', 'Excel report has been generated and downloaded.');
-        };
-        
-        document.getElementById('simulate-ble-data').onclick = () => {
-            if (!requireAuthOrModal()) return;
-            const mockStaff = [{ id: "staff1", name: "Nana Yaw" }, { id: "staff2", name: "Aisha" }, { id: "staff3", name: "Kofi Mensah" }];
-            const randomStaff = mockStaff[Math.floor(Math.random() * mockStaff.length)];
-            const randomLat = 5.6148 + (Math.random() - 0.5) * 0.05;
-            const randomLng = -0.1869 + (Math.random() - 0.5) * 0.05;
-            db.collection(`artifacts/${appId}/public/data/ble_logs`).add({
-                deviceName: `${randomStaff.name}'s ID Card`, userId: randomStaff.id, latitude: randomLat, longitude: randomLng, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                showModal('BLE Log Simulated', `A new BLE location log for ${randomStaff.name} has been added.`);
-            })
-            .catch(error => {
-                console.error('Error simulating BLE data:', error);
-                showModal('Error', 'Failed to simulate BLE data.');
-            });
-        };
-    </script>
+  <!-- ================== Cloud Functions (reference) ==================
+  // functions/package.json
+  {
+    "name": "nsa-functions",
+    "engines": { "node": "20" },
+    "dependencies": { "firebase-admin": "^12.0.0", "firebase-functions": "^5.0.0" }
+  }
+
+  // functions/index.js
+  import * as functions from 'firebase-functions';
+  import * as admin from 'firebase-admin';
+  admin.initializeApp();
+  const db = admin.firestore();
+
+  export const setUserRole = functions.https.onCall( async (data, context) => {
+    // Require caller to be admin
+    if (!context.auth || context.auth.token.role !== 'admin') {
+      throw new functions.https.HttpsError('permission-denied', 'Admins only');
+    }
+    const { email, role } = data;
+    if (!email || !['admin','staff','customer'].includes(role)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Invalid email/role');
+    }
+    const user = await admin.auth().getUserByEmail(email);
+    await admin.auth().setCustomUserClaims(user.uid, { role });
+    await db.doc(`roles/${user.uid}`).set({ role, updatedAt: admin.firestore.FieldValue.serverTimestamp(), email }, { merge: true });
+    await admin.auth().revokeRefreshTokens(user.uid); // force token refresh
+    return { ok: true, uid: user.uid };
+  });
+
+  // Deploy:
+  // firebase deploy --only functions:setUserRole
+
+  // ================== Firestore Security Rules (reference) ==================
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      function isSignedIn() { return request.auth != null; }
+      function isAdmin() { return isSignedIn() && request.auth.token.role == 'admin'; }
+      function isStaff() { return isSignedIn() && request.auth.token.role == 'staff'; }
+
+      // Public readable datasets
+      match /artifacts/{app}/public/data/{doc=**} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+
+      // User private data
+      match /artifacts/{app}/users/{uid}/{coll}/{doc} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+
+      // Work orders: admins manage; staff can update own status only
+      match /artifacts/{app}/public/data/work_orders/{taskId} {
+        allow read: if isSignedIn();
+        allow create, delete, update: if isAdmin();
+        allow update: if isStaff() && request.resource.data.assignedTo == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','completedAt']);
+      }
+
+      // Roles collection protected
+      match /roles/{uid} {
+        allow read: if isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+  }
+
+  // Deploy:
+  // firebase deploy --only firestore:rules
+  =================================================================== -->
 </body>
 </html>
