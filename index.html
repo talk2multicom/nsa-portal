@@ -900,7 +900,6 @@
         }
 
         auth.onAuthStateChanged(user => {
-            loadingPage.classList.add('hidden');
             if (user) {
                 if (user.isAnonymous) {
                     const customerUserIdSpan = document.getElementById('customer-user-id');
