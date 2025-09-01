@@ -943,6 +943,43 @@
                 showModal('Login Failed', 'Invalid email or password. Please try again.');
             }
         });
+        
+        document.getElementById('auth-toggle-link').onclick = (e) => {
+            e.preventDefault();
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+            const togglePrompt = document.getElementById('auth-toggle-prompt');
+            
+            if (loginForm.classList.contains('hidden')) {
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                togglePrompt.innerHTML = `Don't have an account? <a href="#" id="auth-toggle-link" class="text-teal-600 font-medium hover:underline">Sign up.</a>`;
+                document.getElementById('login-form-title').textContent = 'Sign in to access your portal.';
+            } else {
+                loginForm.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+                togglePrompt.innerHTML = `Already have an account? <a href="#" id="auth-toggle-link" class="text-teal-600 font-medium hover:underline">Sign in.</a>`;
+                document.getElementById('login-form-title').textContent = 'Create a new account.';
+            }
+        };
+
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+                showModal('Account Created', 'Your account has been created. You can now sign in.');
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('signup-form').classList.add('hidden');
+                document.getElementById('auth-toggle-prompt').innerHTML = `Don't have an account? <a href="#" id="auth-toggle-link" class="text-teal-600 font-medium hover:underline">Sign up.</a>`;
+                document.getElementById('login-form-title').textContent = 'Sign in to access your portal.';
+            } catch (error) {
+                console.error("Signup failed:", error);
+                showModal('Signup Failed', 'There was an error creating your account. Please try again.');
+            }
+        });
+
 
         document.getElementById('show-public-portal').onclick = () => {
             auth.signInAnonymously().catch(error => {
