@@ -817,6 +817,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
@@ -835,12 +836,13 @@
         };
         
         // --- Firebase Initialization ---
-        let app, auth, db, storage;
+        let app, auth, db, storage, functions;
         try {
             app = firebase.initializeApp(firebaseConfig);
             auth = app.auth();
             db = app.firestore();
             storage = app.storage();
+            functions = app.functions('us-central1');
             console.log('Firebase initialized successfully.');
         } catch (e) {
             console.error('Firebase initialization failed:', e);
@@ -901,6 +903,7 @@
         }
 
         auth.onAuthStateChanged(user => {
+            loadingPage.classList.add('hidden');
             if (user) {
                 if (user.isAnonymous) {
                     const customerUserIdSpan = document.getElementById('customer-user-id');
@@ -993,7 +996,7 @@
         document.getElementById('show-login-portal').onclick = () => auth.signOut();
 
         // --- Admin Dashboard Logic ---
-        const adminTabs = ['overview', 'inventory', 'sales', 'incidents', 'traceability', 'training', 'regulator', 'warehouse', 'assets', 'reports', 'tasks', 'orders', 'ble-tracking'];
+        const adminTabs = ['overview', 'inventory', 'sales', 'incidents', 'traceability', 'training', 'regulator', 'warehouse', 'assets', 'reports', 'tasks', 'orders', 'ble-tracking', 'roles'];
         const adminContainer = document.getElementById('admin-page');
         adminTabs.forEach(tab => {
             document.getElementById(`admin-${tab}-tab`).onclick = () => {
@@ -1007,7 +1010,7 @@
         let salesData = [];
         let incidentsData = [];
         let deliveriesData = [];
-        let ordersData = []; // Added ordersData array
+        let ordersData = [];
 
         function updateAdminAnalytics() {
             const mortalityRateThreshold = 0.005; // 0.5%
